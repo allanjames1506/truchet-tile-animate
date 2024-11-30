@@ -98,6 +98,20 @@ truchet_contour_250 %>%
   tm_shape()+
   tm_polygons()
 
+# https://scikit-image.org/docs/stable/user_guide/install.html
+# https://towardsdatascience.com/virtual-environments-104c62d48c54?gi=2a48dfdcdba9&skipOnboarding=1&source=-----104c62d48c54---------------------post_regwall-----------
+# https://shop.paulrickards.com/truchet-tiles/
+# https://happycoding.io/tutorials/p5js/images/truchet-tiles
+# https://pixlr.com/editor/
+# https://www.youtube.com/watch?v=8pYivqKFpFc
+# https://christophercarlson.com/portfolio/multi-scale-truchet-patterns/
+# https://paezha.github.io/truchet/
+# https://art-from-code.netlify.app/day-2/session-2/
+# https://www.deconbatch.com/2022/03/truchet-tiling.html
+# https://fronkonstin.com/page/2/
+# https://rstudio.github.io/cheatsheets/gganimate.pdf
+
+
 
 
 
