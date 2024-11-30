@@ -110,6 +110,7 @@ truchet_contour_250 %>%
 # https://www.deconbatch.com/2022/03/truchet-tiling.html
 # https://fronkonstin.com/page/2/
 # https://rstudio.github.io/cheatsheets/gganimate.pdf
+# https://happygitwithr.com/rstudio-git-github
 
 
 
