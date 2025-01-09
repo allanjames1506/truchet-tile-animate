@@ -19,6 +19,8 @@ library(tmap)
 library(magick)
 library(here)
 library(patchwork)
+library(spatialEco)
+library(imager)
 
 xlim <- c(0, 7)
 ylim <- c(0, 7)
@@ -90,6 +92,11 @@ xychull_AJ_mclaren_colours <-  xychull_AJ %>%
   geom_sf(color = NA, show.legend = FALSE) + 
   scale_fill_gradientn(colours = c("#FF8000", "#ffffff")) + 
   theme_void()
+
+xychull_AJ_mclaren_colours
+
+ggsave('./03_plots/mcL_polygon1.png', dpi = 350, height = 4, width = 4, units = 'in')
+
 
 # 2. AJ version of ST_TRUCHET_P
 
@@ -517,6 +524,137 @@ polygon_AK_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon, coords=
                             TRUE ~ NA)) %>% 
   select(-group)
 
+#*4.3 Multi-polygon AK+----
+# rotate original polygon AK 90 degrees
+
+# Rotating by 90 degrees:
+# https://www.khanacademy.org/math/geometry/hs-geo-transformations/hs-geo-rotations/a/rotating-shapes#:~:text=Rotating%20by%2090%20degrees%3A&text=So%20from%200%20degrees%20you,Same%20thing.&text=X%20and%20Y%20swaps%2C%20and%20Y%20becomes%20negative.
+# When you rotate by 90 degrees, you take your original X and Y, swap them, and make Y negative
+# So from 0 degrees you take (x, y), swap them, and make y negative (-y, x) and then you have made a 90 degree rotation
+
+web_digitiser_truchet340_multi_polygon_plus <- web_digitiser_truchet340_multi_polygon 
+
+web_digitiser_truchet340_multi_polygon_plus$x_new = web_digitiser_truchet340_multi_polygon_plus$y
+
+web_digitiser_truchet340_multi_polygon_plus$y_new = web_digitiser_truchet340_multi_polygon_plus$x
+
+web_digitiser_truchet340_multi_polygon_plus <- web_digitiser_truchet340_multi_polygon_plus %>% 
+  select(x_new, y_new, group)
+
+# rename columns
+colnames(web_digitiser_truchet340_multi_polygon_plus) <- c('x', 'y', 'group')
+
+# make y negative
+web_digitiser_truchet340_multi_polygon_plus$y_neg = web_digitiser_truchet340_multi_polygon_plus$y*(-1)
+
+web_digitiser_truchet340_multi_polygon_plus <- web_digitiser_truchet340_multi_polygon_plus %>% 
+  select(x, y_neg, group)
+
+colnames(web_digitiser_truchet340_multi_polygon_plus) <- c('x', 'y', 'group')
+
+min(web_digitiser_truchet340_multi_polygon_plus$x)
+
+web_digitiser_truchet340_multi_polygon_plus[,c(1,2)] <-lapply(web_digitiser_truchet340_multi_polygon_plus[,c(1,2)], scales::rescale, to=c(0,1))
+
+polygon_AK_plus_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_plus, coords=c("x","y")) %>% 
+  mutate(colour = case_when(group %in% 'A' ~ 2,
+                            group %in% 'B' ~ 3,
+                            group %in% 'C' ~ 4,
+                            group %in% 'D' ~ 5,
+                            group %in% 'E' ~ 6,
+                            group %in% 'F' ~ 7,
+                            group %in% 'G' ~ 8,
+                            group %in% 'H' ~ 9,
+                            group %in% 'I' ~ 10,
+                            group %in% 'J' ~ 11,
+                            group %in% 'K' ~ 12,
+                            TRUE ~ NA)) %>% 
+  select(-group)
+
+#*4.4 Multi-polygon AK++----
+# rotate polygon AK+ 90 degrees to give AK++
+
+web_digitiser_truchet340_multi_polygon_plus_plus <- web_digitiser_truchet340_multi_polygon_plus 
+
+web_digitiser_truchet340_multi_polygon_plus_plus$x_new = web_digitiser_truchet340_multi_polygon_plus_plus$y
+
+web_digitiser_truchet340_multi_polygon_plus_plus$y_new = web_digitiser_truchet340_multi_polygon_plus_plus$x
+
+web_digitiser_truchet340_multi_polygon_plus_plus <- web_digitiser_truchet340_multi_polygon_plus_plus %>% 
+  select(x_new, y_new, group)
+
+# rename columns
+colnames(web_digitiser_truchet340_multi_polygon_plus_plus) <- c('x', 'y', 'group')
+
+# make y negative
+web_digitiser_truchet340_multi_polygon_plus_plus$y_neg = web_digitiser_truchet340_multi_polygon_plus_plus$y*(-1)
+
+web_digitiser_truchet340_multi_polygon_plus_plus <- web_digitiser_truchet340_multi_polygon_plus_plus %>% 
+  select(x, y_neg, group)
+
+colnames(web_digitiser_truchet340_multi_polygon_plus_plus) <- c('x', 'y', 'group')
+
+#min(web_digitiser_truchet340_multi_polygon_plus$x)
+# rescale x and y to between 0 and 1
+web_digitiser_truchet340_multi_polygon_plus_plus[,c(1,2)] <-lapply(web_digitiser_truchet340_multi_polygon_plus_plus[,c(1,2)], scales::rescale, to=c(0,1))
+
+polygon_AK_plus_plus_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_plus_plus, coords=c("x","y")) %>% 
+  mutate(colour = case_when(group %in% 'A' ~ 2,
+                            group %in% 'B' ~ 3,
+                            group %in% 'C' ~ 4,
+                            group %in% 'D' ~ 5,
+                            group %in% 'E' ~ 6,
+                            group %in% 'F' ~ 7,
+                            group %in% 'G' ~ 8,
+                            group %in% 'H' ~ 9,
+                            group %in% 'I' ~ 10,
+                            group %in% 'J' ~ 11,
+                            group %in% 'K' ~ 12,
+                            TRUE ~ NA)) %>% 
+  select(-group)
+
+#*4.5 Multi-polygon AK-----
+# rotate polygon AK++ 90 degrees to give AK-
+
+web_digitiser_truchet340_multi_polygon_neg <- web_digitiser_truchet340_multi_polygon_plus_plus 
+
+web_digitiser_truchet340_multi_polygon_neg$x_new = web_digitiser_truchet340_multi_polygon_neg$y
+
+web_digitiser_truchet340_multi_polygon_neg$y_new = web_digitiser_truchet340_multi_polygon_neg$x
+
+web_digitiser_truchet340_multi_polygon_neg <- web_digitiser_truchet340_multi_polygon_neg %>% 
+  select(x_new, y_new, group)
+
+# rename columns
+colnames(web_digitiser_truchet340_multi_polygon_neg) <- c('x', 'y', 'group')
+
+# make y negative
+web_digitiser_truchet340_multi_polygon_neg$y_neg = web_digitiser_truchet340_multi_polygon_neg$y*(-1)
+
+web_digitiser_truchet340_multi_polygon_neg <- web_digitiser_truchet340_multi_polygon_neg %>% 
+  select(x, y_neg, group)
+
+colnames(web_digitiser_truchet340_multi_polygon_neg) <- c('x', 'y', 'group')
+
+#min(web_digitiser_truchet340_multi_polygon_plus$x)
+# rescale x and y to between 0 and 1
+web_digitiser_truchet340_multi_polygon_neg[,c(1,2)] <-lapply(web_digitiser_truchet340_multi_polygon_neg[,c(1,2)], scales::rescale, to=c(0,1))
+
+polygon_AK_neg_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_neg, coords=c("x","y")) %>% 
+  mutate(colour = case_when(group %in% 'A' ~ 2,
+                            group %in% 'B' ~ 3,
+                            group %in% 'C' ~ 4,
+                            group %in% 'D' ~ 5,
+                            group %in% 'E' ~ 6,
+                            group %in% 'F' ~ 7,
+                            group %in% 'G' ~ 8,
+                            group %in% 'H' ~ 9,
+                            group %in% 'I' ~ 10,
+                            group %in% 'J' ~ 11,
+                            group %in% 'K' ~ 12,
+                            TRUE ~ NA)) %>% 
+  select(-group)
+
 
 # 5. SMOOTHED POLYGONS----
 # *5.1 Polygon A----
@@ -645,6 +783,54 @@ polygon_AK <- st_sf(
 polygon_AK = st_cast(polygon_AK, 'POLYGON')
 
 plot(polygon_AK)
+
+ggsave('./03_plots/mcL_polygon2.png', dpi = 350, height = 4, width = 4, units = 'in')
+
+
+# *5.13 Multi-Polygon AK+----
+
+polygon_AK_plus <- st_sf(
+  aggregate(
+    polygon_AK_plus_as_matrix,
+    by=list(colour = polygon_AK_plus_as_matrix$colour),
+    do_union=FALSE,
+    FUN=function(vals){vals[1]})) %>% 
+  select(colour, geometry) %>% 
+  st_convex_hull()
+
+polygon_AK_plus = st_cast(polygon_AK_plus, 'POLYGON')
+
+plot(polygon_AK_plus)
+
+# *5.14 Multi-Polygon AK++----
+
+polygon_AK_plus_plus <- st_sf(
+  aggregate(
+    polygon_AK_plus_plus_as_matrix,
+    by=list(colour = polygon_AK_plus_plus_as_matrix$colour),
+    do_union=FALSE,
+    FUN=function(vals){vals[1]})) %>% 
+  select(colour, geometry) %>% 
+  st_convex_hull()
+
+polygon_AK_plus_plus = st_cast(polygon_AK_plus_plus, 'POLYGON')
+
+plot(polygon_AK_plus_plus)
+
+# *5.15 Multi-Polygon AKneg----
+
+polygon_AK_neg <- st_sf(
+  aggregate(
+    polygon_AK_neg_as_matrix,
+    by=list(colour = polygon_AK_neg_as_matrix$colour),
+    do_union=FALSE,
+    FUN=function(vals){vals[1]})) %>% 
+  select(colour, geometry) %>% 
+  st_convex_hull()
+
+polygon_AK_neg = st_cast(polygon_AK_neg, 'POLYGON')
+
+plot(polygon_AK_neg)
 
 # try binding polygons together
 
@@ -848,7 +1034,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
   
   # Validate inputs
   checkmate::assertChoice(scale_p, c(1, 1/2, 1/4))
-  checkmate::assertChoice(type, c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "AK"))
+  checkmate::assertChoice(type, c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "AK", "AK+", "AK++", "AK-"))
 
   # CREATE BASE TILE
   # Define square polygon
@@ -1284,6 +1470,132 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            ## POLYGON AK DONE
            
+         },
+         
+         "AK+" ={
+           ## POLYGON AK+
+           AK_plus_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_plus, coords=c("x","y")) %>% 
+             mutate(colour = case_when(group %in% 'A' ~ 2,
+                                       group %in% 'B' ~ 3,
+                                       group %in% 'C' ~ 4,
+                                       group %in% 'D' ~ 5,
+                                       group %in% 'E' ~ 6,
+                                       group %in% 'F' ~ 7,
+                                       group %in% 'G' ~ 8,
+                                       group %in% 'H' ~ 9,
+                                       group %in% 'I' ~ 10,
+                                       group %in% 'J' ~ 11,
+                                       group %in% 'K' ~ 12,
+                                       TRUE ~ NA)) %>% 
+             select(-group)
+           
+           # Convert coordinates to polygon and then to simple features 
+           polygon_AK_plus <- st_sf(
+             aggregate(
+               AK_plus_as_matrix,
+               by=list(colour = AK_plus_as_matrix$colour),
+               do_union=FALSE,
+               FUN=function(vals){vals[1]})) %>% 
+             select(colour, geometry) %>% 
+             st_convex_hull()
+           
+           polygon_AK_plus = st_cast(polygon_AK_plus, 'POLYGON')
+           
+           output1 <- st_difference(tile, st_union(polygon_AK_plus))
+           
+           output2 <- st_difference(polygon_AK_plus, st_union(tile))
+           
+           output3 <- st_intersection(polygon_AK_plus, tile)
+           
+           tile <- dplyr::bind_rows(output2, output3) %>% 
+             select(colour, geometry)
+           
+           ## POLYGON AK+ DONE
+           
+         },
+         
+         "AK++" ={
+           ## POLYGON AK++
+           AK_plus_plus_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_plus_plus, coords=c("x","y")) %>% 
+             mutate(colour = case_when(group %in% 'A' ~ 2,
+                                       group %in% 'B' ~ 3,
+                                       group %in% 'C' ~ 4,
+                                       group %in% 'D' ~ 5,
+                                       group %in% 'E' ~ 6,
+                                       group %in% 'F' ~ 7,
+                                       group %in% 'G' ~ 8,
+                                       group %in% 'H' ~ 9,
+                                       group %in% 'I' ~ 10,
+                                       group %in% 'J' ~ 11,
+                                       group %in% 'K' ~ 12,
+                                       TRUE ~ NA)) %>% 
+             select(-group)
+           
+           # Convert coordinates to polygon and then to simple features 
+           polygon_AK_plus_plus <- st_sf(
+             aggregate(
+               AK_plus_plus_as_matrix,
+               by=list(colour = AK_plus_plus_as_matrix$colour),
+               do_union=FALSE,
+               FUN=function(vals){vals[1]})) %>% 
+             select(colour, geometry) %>% 
+             st_convex_hull()
+           
+           polygon_AK_plus_plus = st_cast(polygon_AK_plus_plus, 'POLYGON')
+           
+           output1 <- st_difference(tile, st_union(polygon_AK_plus_plus))
+           
+           output2 <- st_difference(polygon_AK_plus_plus, st_union(tile))
+           
+           output3 <- st_intersection(polygon_AK_plus_plus, tile)
+           
+           tile <- dplyr::bind_rows(output2, output3) %>% 
+             select(colour, geometry)
+           
+           ## POLYGON AK++ DONE
+         
+           },
+         
+         "AK-" ={
+           ## POLYGON AK-
+           AK_neg_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_neg, coords=c("x","y")) %>% 
+             mutate(colour = case_when(group %in% 'A' ~ 2,
+                                       group %in% 'B' ~ 3,
+                                       group %in% 'C' ~ 4,
+                                       group %in% 'D' ~ 5,
+                                       group %in% 'E' ~ 6,
+                                       group %in% 'F' ~ 7,
+                                       group %in% 'G' ~ 8,
+                                       group %in% 'H' ~ 9,
+                                       group %in% 'I' ~ 10,
+                                       group %in% 'J' ~ 11,
+                                       group %in% 'K' ~ 12,
+                                       TRUE ~ NA)) %>% 
+             select(-group)
+           
+           # Convert coordinates to polygon and then to simple features 
+           polygon_AK_neg <- st_sf(
+             aggregate(
+               AK_neg_as_matrix,
+               by=list(colour = AK_neg_as_matrix$colour),
+               do_union=FALSE,
+               FUN=function(vals){vals[1]})) %>% 
+             select(colour, geometry) %>% 
+             st_convex_hull()
+           
+           polygon_AK_neg = st_cast(polygon_AK_neg, 'POLYGON')
+           
+           output1 <- st_difference(tile, st_union(polygon_AK_neg))
+           
+           output2 <- st_difference(polygon_AK_neg, st_union(tile))
+           
+           output3 <- st_intersection(polygon_AK_neg, tile)
+           
+           tile <- dplyr::bind_rows(output2, output3) %>% 
+             select(colour, geometry)
+           
+           ## POLYGON AK- DONE
+           
          }
          
          )
@@ -1331,20 +1643,20 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
   }
 
 #test functions----
-aj_truchet_p(x = 1, y = 4, type = "AK") %>%
+aj_truchet_p(x = 1, y = 4, type = "AK-") %>%
   ggplot() +
   geom_sf(aes(fill = factor(colour)))
 
 ggplot() +
   geom_sf(data = aj_truchet_p(x = 0, y = 1, type = "AK", scale_p = 1),
           aes(fill = factor(colour))) +
-  geom_sf(data = aj_truchet_p(x = 1, y = 1, type = "AK", scale_p = 1/2),
+  geom_sf(data = aj_truchet_p(x = 1, y = 1, type = "AK+", scale_p = 1/2),
           aes(fill = factor(colour))) +
-  geom_sf(data = aj_truchet_p(x = 2, y = 1, type = "AK", scale_p = 1/4),
+  geom_sf(data = aj_truchet_p(x = 2, y = 1, type = "AK-", scale_p = 1/4),
           aes(fill = factor(colour))) +
-  geom_sf(data = aj_truchet_p(x = 0, y = 0, type = "AK", scale_p = 1),
+  geom_sf(data = aj_truchet_p(x = 0, y = 0, type = "AK+", scale_p = 1),
           aes(fill = factor(colour))) +
-  geom_sf(data = aj_truchet_p(x = 1, y = 0, type = "AK", scale_p = 1/2),
+  geom_sf(data = aj_truchet_p(x = 1, y = 0, type = "AK-", scale_p = 1/2),
           aes(fill = factor(colour))) +
   geom_sf(data = aj_truchet_p(x = 2, y = 0, type = "AK", scale_p = 1/4),
           aes(fill = factor(colour)))
@@ -1508,12 +1820,27 @@ aj_truchet_ms <- function(df = NULL, p1 = 1, p2 = 0, p3 = 0, tiles = c("A", "B")
   return(mosaic)
 }
 
-mosaic <- aj_truchet_ms(tiles = c("AK", "AK", "AK"), p1 = 0.2, p2 = 0.8)
+mosaic <- aj_truchet_ms(tiles = c("AK", "AK+", "AK++", "AK-"), 
+                        p1 = 0.2, 
+                        p2 = 0.6,
+                        p3 = 0.2,
+                        xlim = c(1, 6),
+                        ylim = c(1, 6))
 
 ggplot() +
   geom_sf(data = mosaic,
           aes(fill = colour),
           color = NA)
+
+mosaic |> 
+  ggplot(aes(fill = colour)) +
+  geom_sf(color = NA, show.legend = FALSE) + 
+  scale_fill_gradientn(colours = c("#FF8000", "#ffffff")) + 
+  theme_void() +
+  theme(plot.background = element_rect(fill = "#47c7fc"))
+
+ggsave('./03_plots/mcL_truchet_ms2.png', dpi = 350, height = 4, width = 4, units = 'in')
+
 
 # 8. TRUCHET DISSOLVE----
 aj_truchet_dissolve <- function(mosaic){
@@ -1533,26 +1860,176 @@ aj_truchet_dissolve <- function(mosaic){
   # Summarize by color to produce individual pieces made of compact segments of mosaic by color
   mosaic_2 <- mosaic %>%
     dplyr::group_by(.data$colour) %>%
-    dplyr::summarize(color = max(.data$colour))
+    dplyr::summarize(colour = max(.data$colour))
   
   sf::st_agr(mosaic_2) <- "constant"
   
-  # # Obtain the difference of mosaics of color 1 with respect to 2
+  # Obtain the difference of mosaics of color 1 with respect to 2
   mosaic_3 <- mosaic_2[1,] %>%
     sf::st_difference(mosaic_2[2,]$geometry) %>%
     sf::st_set_agr("constant") %>%
     sf::st_cast(to = "POLYGON") %>%
     dplyr::mutate(area = sf::st_area(.data$geometry))
   
-  # # Cast the multipolygon of the opposite color to individual polygons
+  # Cast the multipolygon of the opposite color to individual polygons
   mosaic_4 <- mosaic_2[2,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 2 with respect to 3
+  mosaic_5 <- mosaic_2[2,] %>%
+    sf::st_difference(mosaic_2[3,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_6 <- mosaic_2[3,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 3 with respect to 4
+  mosaic_7 <- mosaic_2[3,] %>%
+    sf::st_difference(mosaic_2[4,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_8 <- mosaic_2[4,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 4 with respect to 5
+  mosaic_9 <- mosaic_2[4,] %>%
+    sf::st_difference(mosaic_2[5,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_10 <- mosaic_2[5,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 5 with respect to 6
+  mosaic_11 <- mosaic_2[5,] %>%
+    sf::st_difference(mosaic_2[6,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_12 <- mosaic_2[6,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 6 with respect to 7
+  mosaic_13 <- mosaic_2[6,] %>%
+    sf::st_difference(mosaic_2[7,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_14 <- mosaic_2[7,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 7 with respect to 8
+  mosaic_15 <- mosaic_2[7,] %>%
+    sf::st_difference(mosaic_2[8,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_16 <- mosaic_2[8,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 8 with respect to 9
+  mosaic_17 <- mosaic_2[8,] %>%
+    sf::st_difference(mosaic_2[9,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_18 <- mosaic_2[9,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 9 with respect to 10
+  mosaic_19 <- mosaic_2[9,] %>%
+    sf::st_difference(mosaic_2[10,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_20 <- mosaic_2[10,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 10 with respect to 11
+  mosaic_21 <- mosaic_2[10,] %>%
+    sf::st_difference(mosaic_2[11,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_22 <- mosaic_2[11,] %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Obtain the difference of mosaics of color 11 with respect to 12
+  mosaic_23 <- mosaic_2[11,] %>%
+    sf::st_difference(mosaic_2[12,]$geometry) %>%
+    sf::st_set_agr("constant") %>%
+    sf::st_cast(to = "POLYGON") %>%
+    dplyr::mutate(area = sf::st_area(.data$geometry))
+  
+  # Cast the multipolygon of the opposite color to individual polygons
+  mosaic_24 <- mosaic_2[12,] %>%
     sf::st_set_agr("constant") %>%
     sf::st_cast(to = "POLYGON") %>%
     dplyr::mutate(area = sf::st_area(.data$geometry))
   
   # # Bind both colors
   mosaic <- rbind(mosaic_3,
-                  mosaic_4)
+                  mosaic_4,
+                  mosaic_5,
+                  mosaic_6,
+                  mosaic_7,
+                  mosaic_8,
+                  mosaic_9,
+                  mosaic_10,
+                  mosaic_11,
+                  mosaic_12,
+                  mosaic_13,
+                  mosaic_14,
+                  mosaic_15,
+                  mosaic_16,
+                  mosaic_17,
+                  mosaic_18,
+                  mosaic_19,
+                  mosaic_20,
+                  mosaic_21,
+                  mosaic_22,
+                  mosaic_23,
+                  mosaic_24)
   
   return(mosaic)
 }
@@ -1562,11 +2039,16 @@ mosaic_dissolved <- aj_truchet_dissolve(mosaic = mosaic)
 ggplot() +
   geom_sf(data = mosaic_dissolved,
           color = "black",
-          fill = NA)
+          fill = NA) + 
+  theme_void() +
+  theme(plot.background = element_rect(fill = "#FF8000", colour = '#FF8000'))
+
+ggsave('./03_plots/mcL_polygon4.png', dpi = 350, height = 4, width = 4, units = 'in')
+
 
 ggplot() +
   geom_sf(data = mosaic_dissolved,
-          aes(fill = color),
+          aes(fill = colour),
           color = "white")
 
 buffered_tiles <- mosaic_dissolved %>%
@@ -1648,7 +2130,77 @@ xymp_AJ <- st_sf(
 
 plot(xymp_AJ)
 
+# 9. Photo mosaics with variable-width lines----
+# Point to the place where your image is stored
+lando <- './00_raw_data/lando.jpeg'
 
+# Load and convert to grayscale
+load.image(lando) %>%
+  grayscale() -> img
+
+plot(img)
+
+lando_rs <- imager::imresize(img, 
+                             scale = 1/4, 
+                             interpolation = 6)
+
+plot(lando_rs)
+
+lando_df <- lando_rs %>%
+  as.data.frame() %>%
+  mutate(y = -(y - max(y)))
+
+ggplot() +
+  geom_point(data = lando_df,
+             aes(x = x,
+                 y = y,
+                 color = value)) +
+  coord_equal()
+
+# This will use a smaller subset of points to create the mosaic, which will then be rescaled
+s <- 15
+
+xlim <- c(min(lando_df$x)/s - 4, max(lando_df$x)/s + 4)
+ylim <- c(min(lando_df$y)/s - 4, max(lando_df$y)/s + 4)
+
+# Create a data frame with the coordinates for the tiles and define a scale parameter
+m_1 <- expand.grid(x = seq(xlim[1], xlim[2], 1),
+                   y = seq(ylim[1], ylim[2], 1)) %>%
+  dplyr::mutate(tiles = sample(c("AK", "AK+"), n(), replace = TRUE),
+         scale_p = 1)
+
+m_1 <- aj_truchet_ms(df = m_1) 
+
+ggplot() +
+  geom_sf(data = m_1 %>% aj_truchet_dissolve(),
+          aes(fill = colour),
+          colour = "white")
+
+m_2 <- m_1 %>% 
+  # Dissolve boundaries
+  aj_truchet_dissolve() %>% 
+  # Buffer the polygons
+  st_buffer(dist = -0.15) %>%
+  # Adjust the color field to distinguish it from the original polygons
+  mutate(colour = colour + 2)
+
+# Remove empty geometries
+m_2 <- m_2[!st_is_empty(m_2), , drop = FALSE]
+
+m_1_lines <- m_1 %>% 
+  aj_truchet_dissolve() %>% 
+  st_cast(to = "MULTILINESTRING")
+
+m_2_lines <- m_2 %>% 
+  st_cast(to = "MULTILINESTRING")
+
+ggplot() +
+  geom_sf(data = m_1_lines,
+          color = "#FF8000") +
+  geom_sf(data = m_2_lines,
+          color = "#47c7fc") +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "white", colour = 'white'))
 
 # magick
 # https://r-charts.com/miscellaneous/image-processing-magick/?utm_content=cmp-true
