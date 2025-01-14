@@ -8,139 +8,140 @@ install.packages("devtools")
 devtools::install_github("paezha/truchet")
 
 library(dplyr)
-library(gganimate)
+#library(gganimate)
 library(ggplot2)
-library(sf)
-library(sfheaders)
-library(truchet)
-library(purrr)
-library(terra)
-library(tmap)
-library(magick)
-library(here)
-library(patchwork)
-library(spatialEco)
 library(imager)
-
-xlim <- c(0, 7)
-ylim <- c(0, 7)
-
-# Create a data frame with the spots for tiles
-container <- expand.grid(x = seq(xlim[1], xlim[2], 1),
-                         y = seq(ylim[1], ylim[2], 1)) %>%
-  mutate(tiles = case_when(x <= 3 ~ "dl", 
-                           x > 3 ~ "dr"),
-         scale_p = 1)
-
-mosaic <- st_truchet_ms(df = container)
-
-ggplot() +
-  geom_sf(data = mosaic,
-          aes(fill = color),
-          color = NA)
-
-#https://stackoverflow.com/questions/50303438/points-in-multiple-polygons-using-r
-
-web_digitiser_truchet340_multi_polygon <- read.csv('./00_raw_data/web_digitiser_truchet340_multi_polygon_closed.csv')
-
-max(web_digitiser_truchet340_multi_polygon$y)
-
-web_digitiser_truchet340_multi_polygon[,c(1,2)] <-lapply(web_digitiser_truchet340_multi_polygon[,c(1,2)], scales::rescale, to=c(0,1))
-
-# https://gis.stackexchange.com/questions/332427/converting-points-to-polygons-by-group
-
-xys_AJ <- st_as_sf(web_digitiser_truchet340_multi_polygon, coords=c("x","y"))
-
-# st_truchet_fm(
-#   df = web_digitiser_truchet340_multi_polygon
-# ) %>%
-#   ggplot() +
-#   geom_sf(aes(fill = factor(group)))
-
-xymp_AJ <- st_sf(
-  aggregate(
-    xys_AJ,
-    by=list(ID=xys_AJ$group),
-    do_union=TRUE,
-    FUN=function(vals){vals[1]}))
-
-xychull_AJ <- xymp_AJ
-
-st_geometry(xychull_AJ) <- st_convex_hull(xymp_AJ$geometry)
-
-plot(xychull_AJ['group'])
-
-class(xychull_AJ)
-
-glimpse(xys_AJ)
-
-xychull_AJ_mclaren_colours <-  xychull_AJ %>% 
-  mutate(group = case_when(group %in% 'A' ~ '1',
-                           group %in% 'B' ~ '2',
-                           group %in% 'C' ~ '3',
-                           group %in% 'D' ~ '4',
-                           group %in% 'E' ~ '5',
-                           group %in% 'F' ~ '6',
-                           group %in% 'G' ~ '7',
-                           group %in% 'H' ~ '8',
-                           group %in% 'I' ~ '9',
-                           group %in% 'J' ~ '10',
-                           group %in% 'K' ~ '11',
-                           TRUE ~ group)) %>%
-  mutate(group = as.numeric(group)) %>% 
-  ggplot(aes(fill = group)) +
-  geom_sf(color = NA, show.legend = FALSE) + 
-  scale_fill_gradientn(colours = c("#FF8000", "#ffffff")) + 
-  theme_void()
-
-xychull_AJ_mclaren_colours
-
-ggsave('./03_plots/mcL_polygon1.png', dpi = 350, height = 4, width = 4, units = 'in')
+library(lwgeom)
+library(purrr)
+library(sf)
+#library(sfheaders)
+library(truchet)
+# library(terra)
+# library(tmap)
+# library(magick)
+# library(here)
+# library(patchwork)
+# library(spatialEco)
 
 
-# 2. AJ version of ST_TRUCHET_P
+
+# xlim <- c(0, 7)
+# ylim <- c(0, 7)
+# 
+# # Create a data frame with the spots for tiles
+# container <- expand.grid(x = seq(xlim[1], xlim[2], 1),
+#                          y = seq(ylim[1], ylim[2], 1)) %>%
+#   mutate(tiles = case_when(x <= 3 ~ "dl", 
+#                            x > 3 ~ "dr"),
+#          scale_p = 1)
+# 
+# mosaic <- st_truchet_ms(df = container)
+# 
+# ggplot() +
+#   geom_sf(data = mosaic,
+#           aes(fill = color),
+#           color = NA)
+# 
+# #https://stackoverflow.com/questions/50303438/points-in-multiple-polygons-using-r
+# 
+# web_digitiser_truchet340_multi_polygon <- read.csv('./00_raw_data/web_digitiser_truchet340_multi_polygon_closed.csv')
+# 
+# max(web_digitiser_truchet340_multi_polygon$y)
+# 
+# web_digitiser_truchet340_multi_polygon[,c(1,2)] <-lapply(web_digitiser_truchet340_multi_polygon[,c(1,2)], scales::rescale, to=c(0,1))
+# 
+# # https://gis.stackexchange.com/questions/332427/converting-points-to-polygons-by-group
+# 
+# xys_AJ <- st_as_sf(web_digitiser_truchet340_multi_polygon, coords=c("x","y"))
+# 
+# # st_truchet_fm(
+# #   df = web_digitiser_truchet340_multi_polygon
+# # ) %>%
+# #   ggplot() +
+# #   geom_sf(aes(fill = factor(group)))
+# 
+# xymp_AJ <- st_sf(
+#   aggregate(
+#     xys_AJ,
+#     by=list(ID=xys_AJ$group),
+#     do_union=TRUE,
+#     FUN=function(vals){vals[1]}))
+# 
+# xychull_AJ <- xymp_AJ
+# 
+# st_geometry(xychull_AJ) <- st_convex_hull(xymp_AJ$geometry)
+# 
+# plot(xychull_AJ['group'])
+# 
+# class(xychull_AJ)
+# 
+# glimpse(xys_AJ)
+# 
+# xychull_AJ_mclaren_colours <-  xychull_AJ %>% 
+#   mutate(group = case_when(group %in% 'A' ~ '1',
+#                            group %in% 'B' ~ '2',
+#                            group %in% 'C' ~ '3',
+#                            group %in% 'D' ~ '4',
+#                            group %in% 'E' ~ '5',
+#                            group %in% 'F' ~ '6',
+#                            group %in% 'G' ~ '7',
+#                            group %in% 'H' ~ '8',
+#                            group %in% 'I' ~ '9',
+#                            group %in% 'J' ~ '10',
+#                            group %in% 'K' ~ '11',
+#                            TRUE ~ group)) %>%
+#   mutate(group = as.numeric(group)) %>% 
+#   ggplot(aes(fill = group)) +
+#   geom_sf(color = NA, show.legend = FALSE) + 
+#   scale_fill_gradientn(colours = c("#FF8000", "#ffffff")) + 
+#   theme_void()
+# 
+# xychull_AJ_mclaren_colours
+# 
+# ggsave('./03_plots/mcL_polygon1.png', dpi = 350, height = 4, width = 4, units = 'in')
+
 
 # https://github.com/paezha/truchet/blob/5f8c93c1c316288612aa6280244cf176e7eed18e/R/st_truchet_p.R
 
 #2. CREATE BASE TILE----
 #  Define square polygon
-tile <- matrix(c(0, 0,
-                 0, 1,
-                 1, 1,
-                 1, 0,
-                 0, 0),
-               ncol = 2,
-               byrow = TRUE)
-
-# Convert coordinates to polygons and then to simple features
-tile <- data.frame(geometry = sf::st_polygon(list(tile)) %>%
-                     sf::st_sfc()) %>%
-  sf::st_as_sf()
-
-# Points for base tile
-pts <- data.frame(x = c(0, 0, 1, 1),
-                  y = c(0, 1, 1, 0))
-
-# Convert coordinates to points and then to simple features
-pts <- pts %>%
-  sf::st_as_sf(coords = c("x", "y"))
-
-# Assign constant geometry
-sf::st_agr(pts) <- "constant"
-
-# Obtain points geometry
-pts_gmtry <- pts %>%
-    dplyr::mutate(geometry = pts %>%
-                    dplyr::pull(.data$geometry))
-
-# Assemble base tile
-tile <- data.frame(colour = 1,
-                   sf::st_geometry(rbind(tile,
-                                         pts_gmtry) %>%
-                                     sf::st_union())) %>%
-  sf::st_as_sf()
-
-plot(tile)
+# tile <- matrix(c(0, 0,
+#                  0, 1,
+#                  1, 1,
+#                  1, 0,
+#                  0, 0),
+#                ncol = 2,
+#                byrow = TRUE)
+# 
+# # Convert coordinates to polygons and then to simple features
+# tile <- data.frame(geometry = sf::st_polygon(list(tile)) %>%
+#                      sf::st_sfc()) %>%
+#   sf::st_as_sf()
+# 
+# # Points for base tile
+# pts <- data.frame(x = c(0, 0, 1, 1),
+#                   y = c(0, 1, 1, 0))
+# 
+# # Convert coordinates to points and then to simple features
+# pts <- pts %>%
+#   sf::st_as_sf(coords = c("x", "y"))
+# 
+# # Assign constant geometry
+# sf::st_agr(pts) <- "constant"
+# 
+# # Obtain points geometry
+# pts_gmtry <- pts %>%
+#     dplyr::mutate(geometry = pts %>%
+#                     dplyr::pull(.data$geometry))
+# 
+# # Assemble base tile
+# tile <- data.frame(colour = 1,
+#                    sf::st_geometry(rbind(tile,
+#                                          pts_gmtry) %>%
+#                                      sf::st_union())) %>%
+#   sf::st_as_sf()
+# 
+# plot(tile)
 
 
 ## BASE TILE DONE
@@ -657,9 +658,368 @@ polygon_AK_neg_as_matrix <- st_as_sf(web_digitiser_truchet340_multi_polygon_neg,
 
 
 # 5. SMOOTHED POLYGONS----
-# *5.1 Polygon A----
+# # *5.1 Polygon A----
+# polygon_A <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_A) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_A <- polygon_A %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# # *5.2 Polygon B----
+# polygon_B <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_B_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_B) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_B <- polygon_B %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# # *5.3 Polygon C----
+# polygon_C <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_C_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_C) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_C <- polygon_C %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# # *5.4 Polygon D----
+# polygon_D <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_D_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_D) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_D <- polygon_D %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# # *5.5 Polygon E----
+# polygon_E <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_E_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_E) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_E <- polygon_E %>% 
+#   st_concave_hull(0.1) %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_F <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_F_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_G <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_G_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_H <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_H_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_I <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_I_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_J <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_J_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+# 
+# polygon_K <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_K_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() %>% 
+#   st_convex_hull() %>%
+#   smooth(method = "chaikin")
+
+# *5.12 Multi-Polygon AK----
+# 
+polygon_AK <- st_sf(
+  aggregate(
+    polygon_AK_as_matrix,
+    by=list(colour = polygon_AK_as_matrix$colour),
+    do_union=FALSE,
+    FUN=function(vals){vals[1]})) %>%
+  select(colour, geometry) %>%
+  st_convex_hull()
+
+polygon_AK = st_cast(polygon_AK, 'POLYGON')
+
+plot(polygon_AK)
+# 
+# ggsave('./03_plots/mcL_polygon2.png', dpi = 350, height = 4, width = 4, units = 'in')
+# 
+# 
+# # *5.13 Multi-Polygon AK+----
+# 
+# polygon_AK_plus <- st_sf(
+#   aggregate(
+#     polygon_AK_plus_as_matrix,
+#     by=list(colour = polygon_AK_plus_as_matrix$colour),
+#     do_union=FALSE,
+#     FUN=function(vals){vals[1]})) %>% 
+#   select(colour, geometry) %>% 
+#   st_convex_hull()
+# 
+# polygon_AK_plus = st_cast(polygon_AK_plus, 'POLYGON')
+# 
+# plot(polygon_AK_plus)
+# 
+# # *5.14 Multi-Polygon AK++----
+# 
+# polygon_AK_plus_plus <- st_sf(
+#   aggregate(
+#     polygon_AK_plus_plus_as_matrix,
+#     by=list(colour = polygon_AK_plus_plus_as_matrix$colour),
+#     do_union=FALSE,
+#     FUN=function(vals){vals[1]})) %>% 
+#   select(colour, geometry) %>% 
+#   st_convex_hull()
+# 
+# polygon_AK_plus_plus = st_cast(polygon_AK_plus_plus, 'POLYGON')
+# 
+# plot(polygon_AK_plus_plus)
+# 
+# # *5.15 Multi-Polygon AKneg----
+# 
+# polygon_AK_neg <- st_sf(
+#   aggregate(
+#     polygon_AK_neg_as_matrix,
+#     by=list(colour = polygon_AK_neg_as_matrix$colour),
+#     do_union=FALSE,
+#     FUN=function(vals){vals[1]})) %>% 
+#   select(colour, geometry) %>% 
+#   st_convex_hull()
+# 
+# polygon_AK_neg = st_cast(polygon_AK_neg, 'POLYGON')
+# 
+# plot(polygon_AK_neg)
+# 
+# # try binding polygons together
+# 
+# # *5.1x Polygon A----
+# polygon_A_x <- data.frame(colour = 2,
+#                         geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_A_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_A_x <- polygon_A_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.2x Polygon B----
+# polygon_B_x <- data.frame(colour = 3,
+#                         geometry = sf::st_polygon(list(polygon_B_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_B_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_B_x <- polygon_B_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.3x Polygon C----
+# polygon_C_x <- data.frame(colour = 4,
+#                         geometry = sf::st_polygon(list(polygon_C_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_C_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_C_x <- polygon_C_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.4x Polygon D----
+# polygon_D_x <- data.frame(colour = 5,
+#                         geometry = sf::st_polygon(list(polygon_D_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_D_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_D_x <- polygon_D_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.5x Polygon E----
+# polygon_E_x <- data.frame(colour = 6,
+#                         geometry = sf::st_polygon(list(polygon_E_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_E_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_E_x <- polygon_E_x %>% 
+#   st_concave_hull(0.1) 
+# 
+# # *5.6x Polygon F----
+# polygon_F_x <- data.frame(colour = 7,
+#                         geometry = sf::st_polygon(list(polygon_F_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_F_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_F_x <- polygon_F_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.7x Polygon G----
+# polygon_G_x <- data.frame(colour = 8,
+#                         geometry = sf::st_polygon(list(polygon_G_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf()
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_G_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_G_x <- polygon_G_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.8x Polygon H----
+# polygon_H_x <- data.frame(colour = 9,
+#                         geometry = sf::st_polygon(list(polygon_H_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_H_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_H_x <- polygon_H_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.9x Polygon I----
+# polygon_I_x <- data.frame(colour = 10,
+#                         geometry = sf::st_polygon(list(polygon_I_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_I_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_I_x <- polygon_I_x %>% 
+#   st_convex_hull() 
+# 
+# # *5.10x Polygon J----
+# polygon_J_x <- data.frame(colour = 11,
+#                         geometry = sf::st_polygon(list(polygon_J_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_J_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_J_x <- polygon_J_x %>% 
+#   st_concave_hull(0.1) 
+# 
+# # *5.11x Polygon K----
+# polygon_K_x <- data.frame(colour = 12,
+#                         geometry = sf::st_polygon(list(polygon_K_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf() 
+# 
+# # Assign constant geometry
+# sf::st_agr(polygon_K_x) <- "constant"
+# 
+# # Smooth the polygon
+# polygon_K_x <- polygon_K_x %>% 
+#   st_convex_hull() 
+# 
+# polygon_AK_x <- bind_rows(polygon_A_x,
+#                           polygon_B_x,
+#                           polygon_C_x,
+#                           polygon_D_x,
+#                           polygon_E_x,
+#                           polygon_F_x,
+#                           polygon_G_x,
+#                           polygon_H_x,
+#                           polygon_I_x,
+#                           polygon_J_x,
+#                           polygon_K_x)
+# 
+# polygon_AB <- bind_rows(polygon_A,
+#                         polygon_B)
+# 
+# # 5. UNIONS between POLYGONS and BASE TILE----
+# 
+# # https://stackoverflow.com/questions/54710574/how-to-do-a-full-union-with-the-r-package-sf
+# # https://cran.r-project.org/web/packages/smoothr/vignettes/smoothr.html
+# # https://gist.github.com/mstrimas/ac50a38a7e656a2b3a173f3a6b31a760
+# 
+output1 <- st_difference(tile, st_union(polygon_AK)) #notice the use of st_union()
+
+#plot(st_geometry(output1), border="red", add=TRUE)
+
+output2 <- st_difference(polygon_AK, st_union(tile)) #notice the order of b and a and st_union()
+#plot(st_geometry(op2), border="green", add=TRUE)
+
+output3 <- st_intersection(polygon_AK, tile) #notice the order
+
+#plot(st_geometry(op3), border="blue", add=TRUE)
+
+union <- dplyr::bind_rows(output2, output3) %>%
+  select(colour, geometry)
+
+plot(union)
+
+A_as_matrix <- polygon_A_as_matrix
+
+# Convert coordinates to polygon and then to simple features and then smooth
 polygon_A <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
+                        geometry = sf::st_polygon(list(A_as_matrix)) %>% 
                           sf::st_sfc()) %>%
   sf::st_as_sf() 
 
@@ -668,351 +1028,18 @@ sf::st_agr(polygon_A) <- "constant"
 
 # Smooth the polygon
 polygon_A <- polygon_A %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-# *5.2 Polygon B----
-polygon_B <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_B_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_B) <- "constant"
-
-# Smooth the polygon
-polygon_B <- polygon_B %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-# *5.3 Polygon C----
-polygon_C <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_C_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_C) <- "constant"
-
-# Smooth the polygon
-polygon_C <- polygon_C %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-# *5.4 Polygon D----
-polygon_D <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_D_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_D) <- "constant"
-
-# Smooth the polygon
-polygon_D <- polygon_D %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-# *5.5 Polygon E----
-polygon_E <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_E_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_E) <- "constant"
-
-# Smooth the polygon
-polygon_E <- polygon_E %>% 
-  st_concave_hull(0.1) %>%
-  smooth(method = "chaikin")
-
-polygon_F <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_F_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-polygon_G <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_G_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-polygon_H <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_H_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-polygon_I <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_I_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-polygon_J <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_J_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-polygon_K <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_K_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() %>% 
-  st_convex_hull() %>%
-  smooth(method = "chaikin")
-
-# *5.12 Multi-Polygon AK----
-
-polygon_AK <- st_sf(
-  aggregate(
-    polygon_AK_as_matrix,
-    by=list(colour = polygon_AK_as_matrix$colour),
-    do_union=FALSE,
-    FUN=function(vals){vals[1]})) %>% 
-  select(colour, geometry) %>% 
-  st_convex_hull()
-
-polygon_AK = st_cast(polygon_AK, 'POLYGON')
-
-plot(polygon_AK)
-
-ggsave('./03_plots/mcL_polygon2.png', dpi = 350, height = 4, width = 4, units = 'in')
-
-
-# *5.13 Multi-Polygon AK+----
-
-polygon_AK_plus <- st_sf(
-  aggregate(
-    polygon_AK_plus_as_matrix,
-    by=list(colour = polygon_AK_plus_as_matrix$colour),
-    do_union=FALSE,
-    FUN=function(vals){vals[1]})) %>% 
-  select(colour, geometry) %>% 
-  st_convex_hull()
-
-polygon_AK_plus = st_cast(polygon_AK_plus, 'POLYGON')
-
-plot(polygon_AK_plus)
-
-# *5.14 Multi-Polygon AK++----
-
-polygon_AK_plus_plus <- st_sf(
-  aggregate(
-    polygon_AK_plus_plus_as_matrix,
-    by=list(colour = polygon_AK_plus_plus_as_matrix$colour),
-    do_union=FALSE,
-    FUN=function(vals){vals[1]})) %>% 
-  select(colour, geometry) %>% 
-  st_convex_hull()
-
-polygon_AK_plus_plus = st_cast(polygon_AK_plus_plus, 'POLYGON')
-
-plot(polygon_AK_plus_plus)
-
-# *5.15 Multi-Polygon AKneg----
-
-polygon_AK_neg <- st_sf(
-  aggregate(
-    polygon_AK_neg_as_matrix,
-    by=list(colour = polygon_AK_neg_as_matrix$colour),
-    do_union=FALSE,
-    FUN=function(vals){vals[1]})) %>% 
-  select(colour, geometry) %>% 
-  st_convex_hull()
-
-polygon_AK_neg = st_cast(polygon_AK_neg, 'POLYGON')
-
-plot(polygon_AK_neg)
-
-# try binding polygons together
-
-# *5.1x Polygon A----
-polygon_A_x <- data.frame(colour = 2,
-                        geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_A_x) <- "constant"
-
-# Smooth the polygon
-polygon_A_x <- polygon_A_x %>% 
   st_convex_hull() 
 
-# *5.2x Polygon B----
-polygon_B_x <- data.frame(colour = 3,
-                        geometry = sf::st_polygon(list(polygon_B_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
+output1A <- st_difference(tile, st_union(polygon_A))
 
-# Assign constant geometry
-sf::st_agr(polygon_B_x) <- "constant"
+output2A <- st_intersection(polygon_A, tile)
 
-# Smooth the polygon
-polygon_B_x <- polygon_B_x %>% 
-  st_convex_hull() 
+output3A <- st_difference(polygon_A, tile)
 
-# *5.3x Polygon C----
-polygon_C_x <- data.frame(colour = 4,
-                        geometry = sf::st_polygon(list(polygon_C_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_C_x) <- "constant"
-
-# Smooth the polygon
-polygon_C_x <- polygon_C_x %>% 
-  st_convex_hull() 
-
-# *5.4x Polygon D----
-polygon_D_x <- data.frame(colour = 5,
-                        geometry = sf::st_polygon(list(polygon_D_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_D_x) <- "constant"
-
-# Smooth the polygon
-polygon_D_x <- polygon_D_x %>% 
-  st_convex_hull() 
-
-# *5.5x Polygon E----
-polygon_E_x <- data.frame(colour = 6,
-                        geometry = sf::st_polygon(list(polygon_E_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_E_x) <- "constant"
-
-# Smooth the polygon
-polygon_E_x <- polygon_E_x %>% 
-  st_concave_hull(0.1) 
-
-# *5.6x Polygon F----
-polygon_F_x <- data.frame(colour = 7,
-                        geometry = sf::st_polygon(list(polygon_F_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_F_x) <- "constant"
-
-# Smooth the polygon
-polygon_F_x <- polygon_F_x %>% 
-  st_convex_hull() 
-
-# *5.7x Polygon G----
-polygon_G_x <- data.frame(colour = 8,
-                        geometry = sf::st_polygon(list(polygon_G_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf()
-
-# Assign constant geometry
-sf::st_agr(polygon_G_x) <- "constant"
-
-# Smooth the polygon
-polygon_G_x <- polygon_G_x %>% 
-  st_convex_hull() 
-
-# *5.8x Polygon H----
-polygon_H_x <- data.frame(colour = 9,
-                        geometry = sf::st_polygon(list(polygon_H_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_H_x) <- "constant"
-
-# Smooth the polygon
-polygon_H_x <- polygon_H_x %>% 
-  st_convex_hull() 
-
-# *5.9x Polygon I----
-polygon_I_x <- data.frame(colour = 10,
-                        geometry = sf::st_polygon(list(polygon_I_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_I_x) <- "constant"
-
-# Smooth the polygon
-polygon_I_x <- polygon_I_x %>% 
-  st_convex_hull() 
-
-# *5.10x Polygon J----
-polygon_J_x <- data.frame(colour = 11,
-                        geometry = sf::st_polygon(list(polygon_J_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_J_x) <- "constant"
-
-# Smooth the polygon
-polygon_J_x <- polygon_J_x %>% 
-  st_concave_hull(0.1) 
-
-# *5.11x Polygon K----
-polygon_K_x <- data.frame(colour = 12,
-                        geometry = sf::st_polygon(list(polygon_K_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf() 
-
-# Assign constant geometry
-sf::st_agr(polygon_K_x) <- "constant"
-
-# Smooth the polygon
-polygon_K_x <- polygon_K_x %>% 
-  st_convex_hull() 
-
-polygon_AK_x <- bind_rows(polygon_A_x,
-                          polygon_B_x,
-                          polygon_C_x,
-                          polygon_D_x,
-                          polygon_E_x,
-                          polygon_F_x,
-                          polygon_G_x,
-                          polygon_H_x,
-                          polygon_I_x,
-                          polygon_J_x,
-                          polygon_K_x)
-
-polygon_AB <- bind_rows(polygon_A,
-                        polygon_B)
-
-# 5. UNIONS between POLYGONS and BASE TILE----
-
-# https://stackoverflow.com/questions/54710574/how-to-do-a-full-union-with-the-r-package-sf
-# https://cran.r-project.org/web/packages/smoothr/vignettes/smoothr.html
-# https://gist.github.com/mstrimas/ac50a38a7e656a2b3a173f3a6b31a760
-
-output1 <- st_difference(tile, st_union(polygon_AK)) #notice the use of st_union()
-
-#plot(st_geometry(output1), border="red", add=TRUE)
-
-output2 <- st_difference(polygon_AK, st_union(tile)) #notice the order of b and a and st_union()
-#plot(st_geometry(op2), border="green", add=TRUE)
-
-output3 <- st_intersection(polygon_AK, tile) #notice the order 
-
-#plot(st_geometry(op3), border="blue", add=TRUE)
-
-union <- dplyr::bind_rows(output2, output3) %>% 
+unionA <- dplyr::bind_rows(output3A, output2A) %>% 
   select(colour, geometry)
 
-plot(union)
+plot(unionA)
 
 # 6. TRUCHET P----
 
@@ -1093,8 +1120,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_A <- polygon_A %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon A
@@ -1103,7 +1129,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_A, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_A, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON A DONE
@@ -1125,8 +1153,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_B <- polygon_B %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon B
@@ -1135,7 +1162,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_B, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_B, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON B DONE
@@ -1157,8 +1186,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_C <- polygon_C %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon C
@@ -1167,7 +1195,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_C, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_C, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON C DONE
@@ -1189,8 +1219,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_D <- polygon_D %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon D
@@ -1199,7 +1228,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_D, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_D, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON D DONE
@@ -1221,8 +1252,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_E <- polygon_E %>% 
-             st_concave_hull(0.1) %>%
-             smooth(method = "chaikin")
+             st_concave_hull(0.1) 
            
            # Bind BASE TILE with polygon
            # polygon E
@@ -1231,7 +1261,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_E, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_E, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON E DONE
@@ -1253,8 +1285,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_F <- polygon_F %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon F
@@ -1263,7 +1294,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_F, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_F, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON F DONE
@@ -1285,8 +1318,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_G <- polygon_G %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon G
@@ -1295,7 +1327,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_G, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_G, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON G DONE
@@ -1317,8 +1351,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_H <- polygon_H %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon H
@@ -1327,7 +1360,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_H, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_H, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON H DONE
@@ -1349,8 +1384,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_I <- polygon_I %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon I
@@ -1359,7 +1393,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_I, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_I, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON I DONE
@@ -1381,8 +1417,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_J <- polygon_J %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon J
@@ -1391,7 +1426,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_J, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_J, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON J DONE
@@ -1413,8 +1450,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            # Smooth the polygon
            polygon_K <- polygon_K %>% 
-             st_convex_hull() %>%
-             smooth(method = "chaikin")
+             st_convex_hull() 
            
            # Bind BASE TILE with polygon
            # polygon F
@@ -1423,7 +1459,9 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output2 <- st_intersection(polygon_K, tile)
            
-           tile <- dplyr::bind_rows(output1, output2) %>% 
+           output3 <- st_difference(polygon_K, tile)
+           
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON K DONE
@@ -1461,11 +1499,11 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output1 <- st_difference(tile, st_union(polygon_AK))
            
-           output2 <- st_difference(polygon_AK, st_union(tile))
+           output2 <- st_intersection(polygon_AK, tile)
            
-           output3 <- st_intersection(polygon_AK, tile)
+           output3 <- st_difference(polygon_AK, tile)
            
-           tile <- dplyr::bind_rows(output2, output3) %>% 
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON AK DONE
@@ -1503,11 +1541,11 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output1 <- st_difference(tile, st_union(polygon_AK_plus))
            
-           output2 <- st_difference(polygon_AK_plus, st_union(tile))
+           output2 <- st_intersection(polygon_AK_plus, tile)
            
-           output3 <- st_intersection(polygon_AK_plus, tile)
+           output3 <- st_difference(polygon_AK_plus, tile)
            
-           tile <- dplyr::bind_rows(output2, output3) %>% 
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON AK+ DONE
@@ -1545,11 +1583,11 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output1 <- st_difference(tile, st_union(polygon_AK_plus_plus))
            
-           output2 <- st_difference(polygon_AK_plus_plus, st_union(tile))
+           output2 <- st_intersection(polygon_AK_plus_plus, tile)
            
-           output3 <- st_intersection(polygon_AK_plus_plus, tile)
+           output3 <- st_difference(polygon_AK_plus_plus, tile)
            
-           tile <- dplyr::bind_rows(output2, output3) %>% 
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON AK++ DONE
@@ -1587,11 +1625,11 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
            
            output1 <- st_difference(tile, st_union(polygon_AK_neg))
            
-           output2 <- st_difference(polygon_AK_neg, st_union(tile))
+           output2 <- st_intersection(polygon_AK_neg, tile)
            
-           output3 <- st_intersection(polygon_AK_neg, tile)
+           output3 <- st_difference(polygon_AK_neg, tile)
            
-           tile <- dplyr::bind_rows(output2, output3) %>% 
+           tile <- dplyr::bind_rows(output3, output2) %>% 
              select(colour, geometry)
            
            ## POLYGON AK- DONE
@@ -1643,7 +1681,7 @@ aj_truchet_p <- function(x = 0, y = 0, type = "A", scale_p = 1){
   }
 
 #test functions----
-aj_truchet_p(x = 1, y = 4, type = "AK-") %>%
+aj_truchet_p(x = 1, y = 4, type = "AK") %>%
   ggplot() +
   geom_sf(aes(fill = factor(colour)))
 
@@ -1820,7 +1858,7 @@ aj_truchet_ms <- function(df = NULL, p1 = 1, p2 = 0, p3 = 0, tiles = c("A", "B")
   return(mosaic)
 }
 
-mosaic <- aj_truchet_ms(tiles = c("AK", "AK+", "AK++", "AK-"), 
+mosaic <- aj_truchet_ms(tiles = c("A", "C", "E", "J"), 
                         p1 = 0.2, 
                         p2 = 0.6,
                         p3 = 0.2,
@@ -2051,91 +2089,96 @@ ggplot() +
           aes(fill = colour),
           color = "white")
 
-buffered_tiles <- mosaic_dissolved %>%
-  filter(color == 2)  %>%
-  st_buffer(dist = -0.1)
-
-ggplot() +
-  geom_sf(data = mosaic_dissolved,
-          aes(fill = color),
-          color = "white") +
-  geom_sf(data = buffered_tiles,
-          fill = "red",
-          color = "white")
-
-
-polygon_A <- web_digitiser_truchet340_multi_polygon %>%
-  #filter(group %in% 'A') %>%
-  select(x,y)
-
-polygon_A <- data.frame(geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
-                          sf::st_sfc()) %>%
-  sf::st_as_sf()
-
-plot(polygon_A)
-
-polygon_AK <- web_digitiser_truchet340_multi_polygon %>%
-  mutate(colour = case_when(group %in% 'A' ~ 2,
-                            group %in% 'B' ~ 3,
-                            group %in% 'C' ~ 4,
-                            group %in% 'D' ~ 5,
-                            group %in% 'E' ~ 6,
-                            group %in% 'F' ~ 7,
-                            group %in% 'G' ~ 8,
-                            group %in% 'H' ~ 9,
-                            group %in% 'I' ~ 10,
-                            group %in% 'J' ~ 11,
-                            group %in% 'K' ~ 12,
-                            TRUE ~ NA)) %>% 
-  select(-group)
-
-class(polygon_AK)
-
-polygon_AK_as_matrix <- data.matrix(polygon_AK)
-
-mat <- data.matrix(df)
-
-# reindernijhoff.net
-
-web_digitiser_truchet340 <- read.csv('./00_raw_data/web_digitiser_truchet340.csv') %>%
-  #select(2:3) %>% 
-  rename(lon = x, lat = y)
-
-p_truchet340 <- web_digitiser_truchet340 %>% 
-  ggplot(aes(lon, lat)) + 
-  geom_point(color = 'black')
-
-p_truchet340_polygon <- web_digitiser_truchet340 %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
-  summarise() %>% 
-  st_convex_hull()
-  # summarise(geometry = st_combine(geometry)) %>%
-  # st_cast("POLYGON")
-
-#https://stackoverflow.com/questions/50303438/points-in-multiple-polygons-using-r
-web_digitiser_truchet340_multi_polygon <- read.csv('./00_raw_data/web_digitiser_truchet340_multi_polygon_closed.csv') 
-
-#https://stackoverflow.com/questions/67001602/can-you-create-multiple-polygons-in-r-from-a-dataframe-containing-the-vertices
-
-xys_AJ <- st_as_sf(web_digitiser_truchet340_multi_polygon, coords=c("x","y"))
-
-xymp_AJ <- st_sf(
-  aggregate(
-    xys_AJ,
-    by=list(ID=xys_AJ$group),
-    do_union=FALSE,
-    FUN=function(vals){vals[1]})) %>% 
-  select(ID, geometry) %>% 
-  st_convex_hull()
-
-plot(xymp_AJ)
+# buffered_tiles <- mosaic_dissolved %>%
+#   filter(color == 2)  %>%
+#   st_buffer(dist = -0.1)
+# 
+# ggplot() +
+#   geom_sf(data = mosaic_dissolved,
+#           aes(fill = color),
+#           color = "white") +
+#   geom_sf(data = buffered_tiles,
+#           fill = "red",
+#           color = "white")
+# 
+# 
+# polygon_A <- web_digitiser_truchet340_multi_polygon %>%
+#   #filter(group %in% 'A') %>%
+#   select(x,y)
+# 
+# polygon_A <- data.frame(geometry = sf::st_polygon(list(polygon_A_as_matrix)) %>% 
+#                           sf::st_sfc()) %>%
+#   sf::st_as_sf()
+# 
+# plot(polygon_A)
+# 
+# polygon_AK <- web_digitiser_truchet340_multi_polygon %>%
+#   mutate(colour = case_when(group %in% 'A' ~ 2,
+#                             group %in% 'B' ~ 3,
+#                             group %in% 'C' ~ 4,
+#                             group %in% 'D' ~ 5,
+#                             group %in% 'E' ~ 6,
+#                             group %in% 'F' ~ 7,
+#                             group %in% 'G' ~ 8,
+#                             group %in% 'H' ~ 9,
+#                             group %in% 'I' ~ 10,
+#                             group %in% 'J' ~ 11,
+#                             group %in% 'K' ~ 12,
+#                             TRUE ~ NA)) %>% 
+#   select(-group)
+# 
+# class(polygon_AK)
+# 
+# polygon_AK_as_matrix <- data.matrix(polygon_AK)
+# 
+# mat <- data.matrix(df)
+# 
+# # reindernijhoff.net
+# 
+# web_digitiser_truchet340 <- read.csv('./00_raw_data/web_digitiser_truchet340.csv') %>%
+#   #select(2:3) %>% 
+#   rename(lon = x, lat = y)
+# 
+# p_truchet340 <- web_digitiser_truchet340 %>% 
+#   ggplot(aes(lon, lat)) + 
+#   geom_point(color = 'black')
+# 
+# p_truchet340_polygon <- web_digitiser_truchet340 %>%
+#   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+#   summarise() %>% 
+#   st_convex_hull()
+#   # summarise(geometry = st_combine(geometry)) %>%
+#   # st_cast("POLYGON")
+# 
+# #https://stackoverflow.com/questions/50303438/points-in-multiple-polygons-using-r
+# web_digitiser_truchet340_multi_polygon <- read.csv('./00_raw_data/web_digitiser_truchet340_multi_polygon_closed.csv') 
+# 
+# #https://stackoverflow.com/questions/67001602/can-you-create-multiple-polygons-in-r-from-a-dataframe-containing-the-vertices
+# 
+# xys_AJ <- st_as_sf(web_digitiser_truchet340_multi_polygon, coords=c("x","y"))
+# 
+# xymp_AJ <- st_sf(
+#   aggregate(
+#     xys_AJ,
+#     by=list(ID=xys_AJ$group),
+#     do_union=FALSE,
+#     FUN=function(vals){vals[1]})) %>% 
+#   select(ID, geometry) %>% 
+#   st_convex_hull()
+# 
+# plot(xymp_AJ)
 
 # 9. Photo mosaics with variable-width lines----
 # Point to the place where your image is stored
 lando <- './00_raw_data/lando.jpeg'
 
+mcl38 <- './00_raw_data/mcl38.jpg'
+
 # Load and convert to grayscale
 load.image(lando) %>%
+  grayscale() -> img
+
+load.image(mcl38) %>%
   grayscale() -> img
 
 plot(img)
@@ -2144,29 +2187,37 @@ lando_rs <- imager::imresize(img,
                              scale = 1/4, 
                              interpolation = 6)
 
-plot(lando_rs)
+mcl38_rs <- imager::imresize(img, 
+                             scale = 1/11, 
+                             interpolation = 6)
+
+plot(mcl38_rs)
 
 lando_df <- lando_rs %>%
   as.data.frame() %>%
   mutate(y = -(y - max(y)))
 
+mcl38_df <- mcl38_rs %>%
+  as.data.frame() %>%
+  mutate(y = -(y - max(y)))
+
 ggplot() +
-  geom_point(data = lando_df,
+  geom_point(data = mcl38_df,
              aes(x = x,
                  y = y,
-                 color = value)) +
+                 colour = value)) +
   coord_equal()
 
 # This will use a smaller subset of points to create the mosaic, which will then be rescaled
 s <- 15
 
-xlim <- c(min(lando_df$x)/s - 4, max(lando_df$x)/s + 4)
-ylim <- c(min(lando_df$y)/s - 4, max(lando_df$y)/s + 4)
+xlim <- c(min(mcl38_df$x)/s - 4, max(mcl38_df$x)/s + 4)
+ylim <- c(min(mcl38_df$y)/s - 4, max(mcl38_df$y)/s + 4)
 
 # Create a data frame with the coordinates for the tiles and define a scale parameter
 m_1 <- expand.grid(x = seq(xlim[1], xlim[2], 1),
                    y = seq(ylim[1], ylim[2], 1)) %>%
-  dplyr::mutate(tiles = sample(c("AK", "AK+"), n(), replace = TRUE),
+  dplyr::mutate(tiles = sample(c("AK"), n(), replace = TRUE),
          scale_p = 1)
 
 m_1 <- aj_truchet_ms(df = m_1) 
@@ -2180,7 +2231,7 @@ m_2 <- m_1 %>%
   # Dissolve boundaries
   aj_truchet_dissolve() %>% 
   # Buffer the polygons
-  st_buffer(dist = -0.15) %>%
+  st_buffer(dist = -0.05) %>%
   # Adjust the color field to distinguish it from the original polygons
   mutate(colour = colour + 2)
 
@@ -2189,7 +2240,8 @@ m_2 <- m_2[!st_is_empty(m_2), , drop = FALSE]
 
 m_1_lines <- m_1 %>% 
   aj_truchet_dissolve() %>% 
-  st_cast(to = "MULTILINESTRING")
+  st_cast(to = "MULTILINESTRING") %>% 
+  tidyr::drop_na()
 
 m_2_lines <- m_2 %>% 
   st_cast(to = "MULTILINESTRING")
@@ -2202,6 +2254,295 @@ ggplot() +
   theme_void() +
   theme(plot.background = element_rect(fill = "white", colour = 'white'))
 
+m_1_union <- st_union(m_1)
+m_2_union <- st_union(m_2)
+
+m_1_union <- (m_1_lines * s) %>%
+  st_sf()
+
+m_2_union <- (m_2_lines * s) %>% 
+  st_sf()
+
+ggplot() +
+  geom_sf(data = m_1_union,
+          color = "#FF8000") +
+  geom_sf(data = m_2_union,
+          color = "#47c7fc")
+
+mosaic <- rbind(m_1_union,
+                m_2_union)
+
+
+plot(mosaic)
+
+# Use the bounding box of the mosaic to define the extents of the grid that becomes the blade
+bbox <- st_bbox(mosaic) %>% 
+  round()
+
+# Create a data frame with the start and end points of the lines that become the blade to split the mosaic lines
+blade <- data.frame(x_start = c(bbox$xmin:bbox$xmax, 
+                                rep(bbox$ymin, 
+                                    length(bbox$ymin:bbox$ymax))),
+                    x_end = c(bbox$xmin:bbox$xmax, 
+                              rep(bbox$xmax, 
+                                  length(bbox$ymin:bbox$ymax))),
+                    y_start = c(rep(bbox$ymin, 
+                                    length(bbox$xmin:bbox$xmax)),
+                                bbox$ymin:bbox$ymax),
+                    y_end = c(rep(bbox$ymax,
+                                  length(bbox$xmin:bbox$xmax)),
+                              bbox$ymin:bbox$ymax))
+
+# Shift the blade a small amount to avoid perfect overlap with lines in the mosaic
+blade <- blade %>%
+  mutate(across(everything(), 
+                ~ .x + 0.18))
+
+# Create the blade and convert to simple features
+blade <- purrr::pmap(blade, 
+                     function(x_start, x_end, y_start, y_end){
+                       st_linestring(
+                         matrix(c(x_start,
+                                  y_start,
+                                  x_end,
+                                  y_end),
+                                ncol = 2,
+                                byrow = TRUE))}) %>%
+  st_as_sfc()
+
+
+mosaic_lines <- mosaic %>%
+  st_split(blade)
+
+plot(mosaic_lines)
+
+mosaic_lines <- mosaic_lines %>%
+  st_collection_extract(type = "LINESTRING") %>%
+  st_cast(to = "LINESTRING") %>%
+  mutate(id = 1:n())
+
+lando_sf <- lando_df %>%
+  st_as_sf(coords = c("x", "y"))
+
+mcl38_sf <- mcl38_df %>%
+  st_as_sf(coords = c("x", "y"))
+
+value <- lando_sf[mosaic_lines %>% 
+                      st_nearest_feature(lando_sf),] %>%
+  pull(value)
+
+value <- mcl38_sf[mosaic_lines %>% 
+                    st_nearest_feature(mcl38_sf),] %>%
+  pull(value)
+
+mosaic_lines$value <- value
+
+# ggplot() +
+#   geom_sf(data = mosaic_lines %>%
+#             st_set_agr("constant") %>%
+#             st_crop(lando_sf),
+#           # Reverse the valence of values
+#           aes(size = -value)) +
+#   scale_size(range = c(0.01, 1)) + 
+#   coord_sf(expand = FALSE) + 
+#   theme_void() + 
+#   theme(legend.position = "none",
+#         plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+ggplot() +
+  geom_sf(data = mosaic_lines %>%
+            st_set_agr("constant") %>%
+            st_crop(lando_sf),
+          aes(size = exp(-2 * value))) +
+  scale_size(range = c(0.01, 1)) + 
+  coord_sf(expand = FALSE) + 
+  theme_void() + 
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+ggplot() +
+  geom_sf(data = mosaic_lines %>%
+            st_set_agr("constant") %>%
+            st_crop(mcl38_sf),
+          aes(color = value,
+              size = exp(-2 * value))) +
+  scale_color_distiller(direction = -1) +
+  scale_size(range = c(0.01, 1)) + 
+  coord_sf(expand = FALSE) + 
+  theme_void() + 
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"),
+        plot.background = element_rect(fill = "azure"))
+
+# marilyn----
+marilyn <- load.image(system.file("extdata", 
+                                  "marilyn.jpg", 
+                                  package = "truchet"))
+
+marilyn
+
+marilyn_rs <- imager::imresize(marilyn, 
+                               scale = 1/4, 
+                               interpolation = 6)
+
+marilyn_df <- marilyn_rs %>%
+  as.data.frame() %>%
+  mutate(y = -(y - max(y)))
+
+dim(marilyn_df)
+dim(lando_df)
+
+ggplot() +
+  geom_point(data = lando_df,
+             aes(x = x,
+                 y = y,
+                 color = value)) +
+  coord_equal()
+
+# This will use a smaller subset of points to create the mosaic, which will then be rescaled
+s <- 15
+
+xlim_m <- c(min(marilyn_df$x)/s - 4, max(marilyn_df$x)/s + 4)
+ylim_m <- c(min(marilyn_df$y)/s - 4, max(marilyn_df$y)/s + 4)
+
+# Create a data frame with the coordinates for the tiles and define a scale parameter
+m_1_m <- expand.grid(x = seq(xlim_m[1], xlim_m[2], 1),
+                   y = seq(ylim_m[1], ylim_m[2], 1)) %>%
+  mutate(tiles = sample(c("dl", "dr"), n(), replace = TRUE),
+         scale_p = 1)
+
+m_1_m <- st_truchet_ms(df = m_1_m)
+
+ggplot() +
+  geom_sf(data = m_1_m %>% st_truchet_dissolve(),
+          aes(fill = color),
+          color = "white")
+
+m_2_m <- m_1_m %>% 
+  # Dissolve boundaries
+  st_truchet_dissolve() %>% 
+  # Buffer the polygons
+  st_buffer(dist = -0.15) %>%
+  # Adjust the color field to distinguish it from the original polygons
+  mutate(color = color + 2)
+
+# Remove empty geometries
+m_2_m <- m_2_m[!st_is_empty(m_2_m), , drop = FALSE]
+
+m_1_m_lines <- m_1_m %>% 
+  st_truchet_dissolve() %>% 
+  st_cast(to = "MULTILINESTRING")
+
+m_2_m_lines <- m_2_m %>% 
+  st_cast(to = "MULTILINESTRING")
+
+ggplot() +
+  geom_sf(data = m_1_m_lines,
+          color = "red") +
+  geom_sf(data = m_2_m_lines,
+          color = "blue")
+
+m_1_m_union <- st_union(m_1_m)
+m_2_m_union <- st_union(m_2_m)
+
+m_1_m_union <- (m_1_m_lines * s) %>%
+  st_sf()
+
+m_2_m_union <- (m_2_m_lines * s) %>% 
+  st_sf()
+
+ggplot() +
+  geom_sf(data = m_1_m_union,
+          color = "red") +
+  geom_sf(data = m_2_m_union,
+          color = "blue")
+
+mosaic_m <- rbind(m_1_m_union,
+                  m_2_m_union)
+
+# Use the bounding box of the mosaic to define the extents of the grid that becomes the blade
+bbox_m <- st_bbox(mosaic_m) %>% 
+  round()
+
+# Create a data frame with the start and end points of the lines that become the blade to split the mosaic lines
+blade_m <- data.frame(x_start = c(bbox_m$xmin:bbox_m$xmax, 
+                                rep(bbox_m$ymin, 
+                                    length(bbox_m$ymin:bbox_m$ymax))),
+                    x_end = c(bbox_m$xmin:bbox_m$xmax, 
+                              rep(bbox_m$xmax, 
+                                  length(bbox_m$ymin:bbox_m$ymax))),
+                    y_start = c(rep(bbox_m$ymin, 
+                                    length(bbox_m$xmin:bbox_m$xmax)),
+                                bbox_m$ymin:bbox_m$ymax),
+                    y_end = c(rep(bbox_m$ymax,
+                                  length(bbox_m$xmin:bbox_m$xmax)),
+                              bbox_m$ymin:bbox_m$ymax))
+
+# Shift the blade a small amount to avoid perfect overlap with lines in the mosaic
+blade_m <- blade_m %>%
+  mutate(across(everything(), 
+                ~ .x + 0.18))
+
+# Create the blade and convert to simple features
+blade_m <- purrr::pmap(blade_m, 
+                     function(x_start, x_end, y_start, y_end){
+                       st_linestring(
+                         matrix(c(x_start,
+                                  y_start,
+                                  x_end,
+                                  y_end),
+                                ncol = 2,
+                                byrow = TRUE))}) %>%
+  st_as_sfc()
+
+mosaic_m_lines <- mosaic_m %>%
+  st_split(blade_m)
+
+mosaic_m_lines <- mosaic_m_lines %>%
+  st_collection_extract(type = "LINESTRING") %>%
+  st_cast(to = "LINESTRING") %>%
+  mutate(id = 1:n())
+
+#table(mosaic_lines$colour)
+
+marilyn_sf <- marilyn_df %>%
+  st_as_sf(coords = c("x", "y"))
+
+value <- marilyn_sf[mosaic_m_lines %>% 
+                      st_nearest_feature(marilyn_sf),] %>%
+  pull(value)
+
+mosaic_m_lines$value <- value
+
+ggplot() +
+  geom_sf(data = mosaic_m_lines %>%
+            st_set_agr("constant") %>%
+            st_crop(marilyn_sf),
+          # Reverse the valence of values
+          aes(size = -value)) +
+  scale_size(range = c(0.01, 1)) + 
+  coord_sf(expand = FALSE) + 
+  #theme_void() + 
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+plot(mosaic_lines)
+
+ggplot() +
+  geom_sf(data = mosaic_lines %>%
+            st_set_agr("constant") %>%
+            st_crop(marilyn_sf),
+          aes(color = value,
+              size = exp(-2 * value))) +
+  scale_color_distiller(direction = -1) +
+  scale_size(range = c(0.01, 1)) + 
+  coord_sf(expand = FALSE) + 
+  theme_void() + 
+  theme(legend.position = "none",
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "in"))
+
+mosaic_test_ms <- aj_truchet_ms(tiles = c("A", "B"), p1 = 0.2, p2 = 0.8)
+warnings()
 # magick
 # https://r-charts.com/miscellaneous/image-processing-magick/?utm_content=cmp-true
 
