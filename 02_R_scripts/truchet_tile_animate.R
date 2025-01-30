@@ -3626,10 +3626,16 @@ bruce_crop <- image_crop(bruce, geometry = "1000x400+50+125")
 
 image_write(bruce_crop, path = './00_raw_data/BruceMcLaren_cropped.jpeg', format = "jpeg")
 
+bruce_crop1 <- image_crop(bruce, geometry = "450x350+75+130")
+
+image_write(bruce_crop1, path = './00_raw_data/BruceMcLaren_cropped1.jpeg', format = "jpeg")
+
 bruce_cropped <- './00_raw_data/BruceMcLaren_cropped.jpeg'
 
+bruce_cropped1 <- './00_raw_data/BruceMcLaren_cropped1.jpeg'
+
 # Load and convert to grayscale
-load.image(bruce_cropped) %>%
+load.image(bruce_cropped1) %>%
   grayscale() -> img
 
 plot(img)
@@ -3740,8 +3746,30 @@ mosaic_bruce %>%
                                                                    dTP1_alt$t >18 & dTP1_alt$t <= 20 ~ 0.275,
                                                                    TRUE ~ 0.3)) -> plot
 
+mosaic_bruce %>%
+  ggplot() + 
+  geom_sf(aes(fill = color),
+          color = '#FF8000',
+          show.legend = FALSE) +
+  # geom_sf(data = mosaic_dissolved,
+  #         aes(fill = colour),
+  #         color = "white", inherit.aes = FALSE) +
+  #scale_fill_distiller(palette = "Spectral", direction = -1) + 
+  scale_fill_gradient2(low = "grey", 
+                       mid = "white", 
+                       high = "black",
+                       midpoint = 1.5) +
+  #scale_colour_brewer(palette = "Greens") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=5)) -> plot
+
 plot
-plot_bruce <- plot + gganimate::transition_time(t) + gganimate::ease_aes('linear')
+plot_bruce <- plot + gganimate::transition_time(color) + gganimate::ease_aes('linear')
+
+plot_bruce <- plot + gganimate::transition_states(color, transition_length = 2, state_length = 1) + shadow_wake(wake_length = 0.05) 
+
 
 # plot_oscar_animate <- plot +
 #   coord_fixed() +
@@ -3752,11 +3780,14 @@ plot_bruce <- plot + gganimate::transition_time(t) + gganimate::ease_aes('linear
 #   enter_fade() +
 #   exit_fade()
 
-animate(plot_bruce, fps = 30, duration = 20, end_pause = 100)
-anim_save("./04_gifs/animation_bruce1.gif", height = 372, width = 538, units = "px")
+animate(plot_bruce, fps = 30, duration = 20, end_pause = 20, height = 600, width = 600)
+anim_save("./04_gifs/animation_bruce3.gif")
 
-animate(plot_bruce, nframes = 250, end_pause = 50, height = 600, width = 600)
-anim_save("./04_gifs/animation_bruce2.gif")
+animate(plot_bruce, nframes = 200, end_pause = 10, height = 600, width = 600)
+anim_save("./04_gifs/animation_bruce3.gif")
+
+animate(plot_bruce, nframes = 60, height = 450, width = 350)
+anim_save("./04_gifs/animation_bruce5.gif")
 
 
 #plot + transition_time(x) + shadow_mark()
