@@ -3622,10 +3622,12 @@ info <- image_info(bruce)
 
 print(info)
 
+# whole image
 bruce_crop <- image_crop(bruce, geometry = "1000x400+50+125")
 
 image_write(bruce_crop, path = './00_raw_data/BruceMcLaren_cropped.jpeg', format = "jpeg")
 
+# chequered flag man
 bruce_crop1 <- image_crop(bruce, geometry = "450x350+75+130")
 
 image_write(bruce_crop1, path = './00_raw_data/BruceMcLaren_cropped1.jpeg', format = "jpeg")
