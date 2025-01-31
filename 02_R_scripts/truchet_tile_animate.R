@@ -1,4 +1,6 @@
 
+# https://www.swyx.io/solve-git-bad-object-head
+
 # 1. LIBRARIES----
 
 #https://paezha.github.io/truchet/articles/a03-figurative-mosaics.html
