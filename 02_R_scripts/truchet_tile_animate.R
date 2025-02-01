@@ -3634,12 +3634,19 @@ bruce_crop1 <- image_crop(bruce, geometry = "450x350+75+130")
 
 image_write(bruce_crop1, path = './00_raw_data/BruceMcLaren_cropped1.jpeg', format = "jpeg")
 
+# Bruce in his car
+bruce_crop2 <- image_crop(bruce, geometry = "600x400+530+130")
+
+image_write(bruce_crop2, path = './00_raw_data/BruceMcLaren_cropped2.jpeg', format = "jpeg")
+
 bruce_cropped <- './00_raw_data/BruceMcLaren_cropped.jpeg'
 
 bruce_cropped1 <- './00_raw_data/BruceMcLaren_cropped1.jpeg'
 
+bruce_cropped2 <- './00_raw_data/BruceMcLaren_cropped2.jpeg'
+
 # Load and convert to grayscale
-load.image(bruce_cropped1) %>%
+load.image(bruce_cropped2) %>%
   grayscale() -> img
 
 plot(img)
@@ -3659,7 +3666,7 @@ df_bruce <- bruce_df %>%
   mutate(y = -(y - max(y)),
          # The modulus of x + y can be used to create a checkerboard pattern
          tiles = case_when((x + y) %% 2 == 0 ~ "Ac",
-                           (x + y) %% 2 == 1 ~ "Cc"),
+                           (x + y) %% 2 == 1 ~ "Dc"),
          b = case_when((x + y) %% 2 == 0 ~ 1 - value,
                        (x + y) %% 2 == 1 ~ value))
 
@@ -3770,6 +3777,8 @@ mosaic_bruce %>%
         panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=5)) -> plot
 
 plot
+ggsave('./03_plots/bruce_car1.png', dpi = 350, height = 2.8, width = 4.2, units = 'in')
+
 plot_bruce <- plot + gganimate::transition_time(color) + gganimate::ease_aes('linear')
 
 plot_bruce <- plot + gganimate::transition_states(color, transition_length = 2, state_length = 1) + shadow_wake(wake_length = 0.05) 
@@ -3790,8 +3799,8 @@ anim_save("./04_gifs/animation_bruce3.gif")
 animate(plot_bruce, nframes = 200, end_pause = 10, height = 600, width = 600)
 anim_save("./04_gifs/animation_bruce3.gif")
 
-animate(plot_bruce, nframes = 60, height = 450, width = 350)
-anim_save("./04_gifs/animation_bruce5.gif")
+animate(plot_bruce, nframes = 65, height = 500, width = 750)
+anim_save("./04_gifs/animation_bruce7.gif")
 
 
 #plot + transition_time(x) + shadow_mark()
