@@ -23,7 +23,9 @@ library(truchet)
 # library(terra)
 # library(tmap)
 # library(magick)
-# library(here)
+library(here)
+library(ggimage)
+library(data.table)
 # library(patchwork)
 # library(spatialEco)
 
@@ -1868,12 +1870,19 @@ aj_truchet_ms <- function(df = NULL, p1 = 1, p2 = 0, p3 = 0, tiles = c("A", "B")
   return(mosaic)
 }
 
-mosaic <- aj_truchet_ms(tiles = c("A", "C", "E", "J"), 
+mosaic <- aj_truchet_ms(tiles = c("AK", "AK+", "AK++", "AK-"), 
                         p1 = 0.2, 
                         p2 = 0.6,
                         p3 = 0.2,
-                        xlim = c(0, 125),
-                        ylim = c(50, 80))
+                        xlim = c(0, 6),
+                        ylim = c(0, 6))
+
+# aj_truchet_ms(tiles = c("A", "C", "E", "J"), 
+#               p1 = 0.2, 
+#               p2 = 0.6,
+#               p3 = 0.2,
+#               xlim = c(0, 125),
+#               ylim = c(50, 80))
 
 ggplot() +
   geom_sf(data = mosaic,
@@ -3639,18 +3648,26 @@ bruce_crop2 <- image_crop(bruce, geometry = "600x400+530+130")
 
 image_write(bruce_crop2, path = './00_raw_data/BruceMcLaren_cropped2.jpeg', format = "jpeg")
 
+# flag
+bruce_crop3 <- image_crop(bruce, geometry = "150x150+360+180")
+
+image_write(bruce_crop3, path = './00_raw_data/BruceMcLaren_cropped3.jpeg', format = "jpeg")
+
 bruce_cropped <- './00_raw_data/BruceMcLaren_cropped.jpeg'
 
 bruce_cropped1 <- './00_raw_data/BruceMcLaren_cropped1.jpeg'
 
 bruce_cropped2 <- './00_raw_data/BruceMcLaren_cropped2.jpeg'
 
+bruce_cropped3 <- './00_raw_data/BruceMcLaren_cropped3.jpeg'
+
 # Load and convert to grayscale
-load.image(bruce_cropped2) %>%
+load.image(bruce_cropped) %>%
   grayscale() -> img
 
 plot(img)
 
+# bruce_cropped 1/8
 bruce_rs <- imager::imresize(img, 
                              scale = 1/8, 
                              interpolation = 6)
@@ -3670,7 +3687,9 @@ df_bruce <- bruce_df %>%
          b = case_when((x + y) %% 2 == 0 ~ 1 - value,
                        (x + y) %% 2 == 1 ~ value))
 
-#df_bruce %>% mutate(z = cut(value, breaks = 20, labels = FALSE)) -> df_bruce
+# df_bruce_small <- df_bruce %>% 
+#   filter(x>19 & x<31, 
+#          y>19 & y<31)
 
 # Start a timer
 start_time <- Sys.time()
@@ -3687,28 +3706,53 @@ end_time - start_time
 
 mosaic_bruce <- mosaic_bruce %>% mutate(id = as.numeric(id))
 
-glimpse(mosaic_bruce)
+#glimpse(mosaic_bruce)
 
-# mosaic_bruce <- mosaic_bruce %>% 
-#   mutate(anim = case_when(id >50 & id <= 200 ~ 1,
-#                           TRUE ~ 0))
+#https://stackoverflow.com/questions/64037373/gganimate-data-present-only-in-some-frames
+
+McL_logo <- image_read('./00_raw_data/McLaren_logo1.png')
+
+info <- image_info(McL_logo) 
+
+print(info)
+
+# McL_logo_resized <- image_resize(McL_logo, '3650x2000')
 # 
-# mosaic_bruce_filtered <- mosaic_bruce %>% 
-#   filter(anim == 1)
+# image_write(McL_logo_resized, here("00_raw_data", "McLaren_logo3_resized.png"), format = "png", quality = 75)
+# 
+# print(info)
 
-#mosaic_bruce$group <- cut_number(mosaic_bruce$color, n = 20)
+image_path <- "./00_raw_data/"
 
-#mosaic_bruce %>% mutate(z = cut(id, breaks = 20, labels = FALSE)) %>% ungroup() -> mosaic_bruce
+mclaren_logo <- paste0(image_path, 'McLaren_logo1.png')
+
+# logo_anim = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110),
+#                        y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
+#                        t = 1:20,
+#                        McL=rep("dtP1", 20),
+#                        Image = rep(mclaren_logo, 20))
+
+dTP1_alt = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115),
+                      y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
+                      t = 1:21,
+                      McL=rep("dtP1", 21),
+                      Image = rep(mclaren_logo, 21))
+
+# dTP1_alt <- dTP1_alt %>% 
+#   mutate(logo_size = seq(from = 0.05, to = 0.4, len =20))
+# 
+# glimpse(dTP1_alt)
+# 
+# dTP1_alt <- as_tibble(dTP1_alt)
 
 mosaic_bruce %>%
   ggplot() + 
   geom_sf(aes(fill = color),
           color = 'black') +
-  # geom_sf(data = mosaic_dissolved,
-  #         aes(fill = colour),
-  #         color = "white", inherit.aes = FALSE) +
-  scale_fill_distiller(direction = -1) + 
-  #scale_colour_brewer(palette = "Greens") +
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
+                       high = "black",
+                       midpoint = 2) +
   coord_sf(expand = FALSE) +
   theme_void() +
   theme(legend.position = "none",
@@ -3716,10 +3760,6 @@ mosaic_bruce %>%
         # plot.caption = element_text(size = 16, family = "zen"),
         panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=2)) +
   expand_limits(y = 80) +
-  # labs(x = NULL,
-  #      y = NULL,
-  #      title = NULL,
-  #      caption = "racer | innovator | visionary") +
   annotate(
     "text",
     x = 60,
@@ -3742,9 +3782,6 @@ mosaic_bruce %>%
     colour = '#FF8000',
     fontface = "bold",
     family = "zen") +
-  # geom_point(data = dtP1,
-  #            aes(x = x,
-  #                y = y), size=1, alpha = 1) +
   geom_image(data = dTP1_alt, aes(x = x,
                                   y = y, 
                                   image = Image,
@@ -3757,41 +3794,31 @@ mosaic_bruce %>%
                                                                    dTP1_alt$t >18 & dTP1_alt$t <= 20 ~ 0.275,
                                                                    TRUE ~ 0.3)) -> plot
 
+plot
+
 mosaic_bruce %>%
   ggplot() + 
   geom_sf(aes(fill = color),
-          color = '#FF8000',
+          color = '#73AEA4',
           show.legend = FALSE) +
-  # geom_sf(data = mosaic_dissolved,
-  #         aes(fill = colour),
-  #         color = "white", inherit.aes = FALSE) +
-  #scale_fill_distiller(palette = "Spectral", direction = -1) + 
-  scale_fill_gradient2(low = "grey", 
-                       mid = "white", 
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
                        high = "black",
                        midpoint = 1.5) +
   #scale_colour_brewer(palette = "Greens") +
   coord_sf(expand = FALSE) +
   theme_void() +
   theme(plot.background = element_rect(fill = "floralwhite"),
-        panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=5)) -> plot
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=3)) -> plot
 
 plot
-ggsave('./03_plots/bruce_car1.png', dpi = 350, height = 2.8, width = 4.2, units = 'in')
+ggsave('./03_plots/bruce_car2.png', dpi = 350, height = 2.8, width = 4.2, units = 'in')
 
-plot_bruce <- plot + gganimate::transition_time(color) + gganimate::ease_aes('linear')
+# animate with the t variable
+plot_bruce <- plot + gganimate::transition_time(t) + gganimate::ease_aes('linear')
 
-plot_bruce <- plot + gganimate::transition_states(color, transition_length = 2, state_length = 1) + shadow_wake(wake_length = 0.05) 
-
-
-# plot_oscar_animate <- plot +
-#   coord_fixed() +
-#   scale_y_reverse() +
-#   theme_void() + 
-#   transition_states(z, transition_length = 3, state_length = 3, wrap = FALSE) + 
-#   shadow_mark() +
-#   enter_fade() +
-#   exit_fade()
+# animate with the color variable
+plot_bruce <- plot + gganimate::transition_states(color, transition_length = 3, state_length = 1) + shadow_wake(wake_length = 0.05) 
 
 animate(plot_bruce, fps = 30, duration = 20, end_pause = 20, height = 600, width = 600)
 anim_save("./04_gifs/animation_bruce3.gif")
@@ -3799,12 +3826,10 @@ anim_save("./04_gifs/animation_bruce3.gif")
 animate(plot_bruce, nframes = 200, end_pause = 10, height = 600, width = 600)
 anim_save("./04_gifs/animation_bruce3.gif")
 
-animate(plot_bruce, nframes = 65, height = 500, width = 750)
-anim_save("./04_gifs/animation_bruce7.gif")
-
-
-#plot + transition_time(x) + shadow_mark()
-
+# animate(plot_bruce, nframes = 65, height = 150, width = 150)
+# for the bruce, racer, innovator, visionary wider than taller gif
+animate(plot_bruce, fps = 30, duration = 6.5, end_pause = 10, height = 400, width = 600)
+anim_save("./04_gifs/animation_bruce10.gif")
 
 plot + transition_states(color)
 
@@ -3820,49 +3845,342 @@ animate(bruce_animate, nframes = 250, end_pause = 100, height = 600, width = 600
 
 #https://stackoverflow.com/questions/64037373/gganimate-data-present-only-in-some-frames
 
-McL_logo <- image_read('./00_raw_data/McLaren_logo1.png')
+# McL_logo <- image_read('./00_raw_data/McLaren_logo1.png')
+# 
+# info <- image_info(McL_logo) 
+# 
+# print(info)
+# 
+# McL_logo_resized <- image_resize(McL_logo, '3650x2000')
+# 
+# image_write(McL_logo_resized, here("00_raw_data", "McLaren_logo3_resized.png"), format = "png", quality = 75)
+# 
+# print(info)
+# 
+# image_path <- "./00_raw_data/"
+# 
+# mclaren_logo <- paste0(image_path, 'McLaren_logo1.png')
+# 
+# logo_anim = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110),
+#                   y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
+#                   t = 1:20,
+#                   McL=rep("dtP1", 20),
+#                   Image = rep(mclaren_logo, 20))
+# 
+# dTP1_alt = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115),
+#                        y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
+#                        t = 1:21,
+#                        McL=rep("dtP1", 21),
+#                        Image = rep(mclaren_logo, 21))
+# 
+# dTP1_alt <- dTP1_alt %>% 
+#   mutate(logo_size = seq(from = 0.05, to = 0.4, len =20))
+# 
+# glimpse(dTP1_alt)
+# 
+# dTP1_alt <- as_tibble(dTP1_alt)
 
-info <- image_info(McL_logo) 
+# 13. Animate patterns----
+
+bruce <- image_read('./00_raw_data/BruceMcLaren.jpeg.webp')
+
+info <- image_info(bruce) 
 
 print(info)
 
-McL_logo_resized <- image_resize(McL_logo, '3650x2000')
+# flag - use for random pattern
+chequered_pattern <- image_crop(bruce, geometry = "150x150+360+180")
 
-image_write(McL_logo_resized, here("00_raw_data", "McLaren_logo3_resized.png"), format = "png", quality = 75)
+image_write(chequered_pattern, path = './00_raw_data/chequered_pattern1.jpeg', format = "jpeg")
 
-print(info)
+chequered_pattern1 <- './00_raw_data/chequered_pattern1.jpeg'
 
-image_path <- "./00_raw_data/"
+# Load and convert to grayscale
+load.image(chequered_pattern1) %>%
+  grayscale() -> img
 
-mclaren_logo <- paste0(image_path, 'McLaren_logo1.png')
+plot(img)
 
-logo_anim = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110),
-                  y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
-                  t = 1:20,
-                  McL=rep("dtP1", 20),
-                  Image = rep(mclaren_logo, 20))
+chequered_pattern1_rs <- imager::imresize(img, 
+                                          scale = 1/2, 
+                                          interpolation = 6)
 
-dTP1_alt = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115),
-                       y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
-                       t = 1:21,
-                       McL=rep("dtP1", 21),
-                       Image = rep(mclaren_logo, 21))
+plot(chequered_pattern1_rs)
 
-dTP1_alt <- dTP1_alt %>% 
-  mutate(logo_size = seq(from = 0.05, to = 0.4, len =20))
+chequered_pattern_df <- chequered_pattern1_rs %>%
+  as.data.frame() %>%
+  mutate(y = y - max(y))
 
-glimpse(dTP1_alt)
+chequered_pattern_df <- chequered_pattern_df %>% 
+  # Reverse the y axis
+  mutate(y = -(y - max(y)),
+         # The modulus of x + y can be used to create a checkerboard pattern
+         tiles = case_when((x + y) %% 2 == 0 ~ "Ac",
+                           (x + y) %% 2 == 1 ~ "Dc"),
+         b = case_when((x + y) %% 2 == 0 ~ 1 - value,
+                       (x + y) %% 2 == 1 ~ value))
 
-dTP1_alt <- as_tibble(dTP1_alt)
+df_chequered_pattern_small <- chequered_pattern_df %>% 
+  filter(x>19 & x<31, 
+         y>19 & y<31)
 
+df_chequered_pattern_very_small <- chequered_pattern_df %>% 
+  filter(x>19 & x<22, 
+         y>19 & y<22)
 
-p = ggplot() +
-  geom_point(data = logo_anim, aes(x= x, y= y, group = McL), size=8) +
-  geom_image(aes(image=Image)) +
-  gganimate::transition_time(t) +
-  gganimate::ease_aes('linear')
+# Start a timer
+start_time <- Sys.time()
+
+# Assemble mosaic
+mosaic_chequered_pattern <- st_truchet_fm(df = df_chequered_pattern_very_small %>% 
+                                mutate(b = b * 0.99 + 0.001))
+
+# End timer
+end_time <- Sys.time()
+
+# Calculate time
+end_time - start_time
+
+mosaic_chequered_pattern <- mosaic_chequered_pattern %>% mutate(id = as.numeric(id))
+
+glimpse(mosaic_chequered_pattern)
+
+mosaic_chequered_pattern %>%
+  ggplot() + 
+  geom_sf(aes(fill = color),
+          color = '#73AEA4',
+          show.legend = FALSE) +
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
+                       high = "black",
+                       midpoint = 1.5) +
+  #scale_colour_brewer(palette = "Greens") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=3)) -> plot
+
+plot
+
+rotation = function(a, x, y, type, b){
+  tile <- st_truchet_flex(type = type, b = b)
+  rm <- matrix(c(cos(a), sin(a), 
+                 -sin(a), cos(a)),
+               nrow = 2, 
+               ncol = 2)
+  tile %>%
+    mutate(geometry = st_geometry(tile) * rm + c(x, y)) %>%
+    st_sf()
+} 
+
+pause <- 60
+steps_anim <- 180
+
+a <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+       rep(pi/2, pause), # Pause at pi/2 for `pause` 
+       seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(pi, pause), # Pause at pi for `pause` 
+       seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(3 * pi/2, pause), # Pause at 3 * pi/2 for `pause` 
+       seq(3 * pi/2, 2 * pi, pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(2 * pi, pause)) # Pause at 2 * pi for `pause` 
+
+a_alt <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+           seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+           seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+           seq(3 * pi/2, 2 * pi, pi/steps_anim)) # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+        
+
+# Set seed
+set.seed(7336)
+
+tile_type <- sample(c("Ac", "Bc", "Cc", "Dc"),
+                    4, 
+                    replace = TRUE)
+
+tile_type_alt <- c("Ac", "Bc", "Ac", "Bc")
+
+# Create a data frame with the spots for the background tiles
+background <- data.frame(x = c(1, 1, 2, 2),
+                         y = c(1, 2, 2, 1),
+                         tiles = tile_type_alt,
+                         b = 0.05) %>%
+  st_truchet_fm()
+
+#mosaic_chequered_pattern_try <- df_chequered_pattern_very_small  %>% st_truchet_fm() 
+
+ggplot() +
+  geom_sf(data = background,
+          aes(fill = factor(color)),
+          color = NA)+
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c("1" = "#0057b7", "2" = "#ffd700"))
+
+ggplot() +
+  geom_sf(data = mosaic_chequered_pattern,
+          aes(fill = color),
+          color = '#73AEA4',
+          show.legend = FALSE) +
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
+                       high = "black",
+                       midpoint = 1.5) +
+  #scale_colour_brewer(palette = "Greens") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=3)) 
+
+# Tile 1
+# Initialize an empty data frame
+tile_1 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a_alt){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1 <- rbind(tile_1,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 1, 
+                                      y = 1,
+                                      type = tile_type_alt[1],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1 <- tile_1 %>%
+  mutate(tile = "1") %>%
+  st_sf()
+
+# Tile 2
+tile_2 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_2 <- rbind(tile_2,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 2, 
+                                      y = 2, 
+                                      type = tile_type_alt[2],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2 <- tile_2 %>%
+  mutate(tile = "2") %>%
+  st_sf()
+
+# Tile 3
+tile_3 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_3 <- rbind(tile_3,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 1, 
+                                      y = 2, 
+                                      type = tile_type_alt[3],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3 <- tile_3 %>%
+  mutate(tile = "3") %>%
+  st_sf()
+
+# Tile 4
+tile_4 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_4 <- rbind(tile_4,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 2, 
+                                      y = 1, 
+                                      type = tile_type_alt[4],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4 <- tile_4 %>%
+  mutate(tile = "4") %>%
+  st_sf()
+
+mosaic <- rbind(tile_1,
+                tile_2,
+                tile_3,
+                tile_4)
+
+p <- ggplot() +
+  # Render the static background mosaic
+  # geom_sf(data = background,
+  #         aes(fill = factor(color)),
+  #         color = NA) +
+  # Render the animated tiles: first the tiles of color 1
+  geom_sf(data = mosaic %>%
+            filter(color == 1),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  # Render the animated tiles: then the tiles of color 2
+  geom_sf(data = mosaic %>%
+            filter(color == 2),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c("1" = "#FF8000", "2" = "#B6BABD")) + 
+  # "Crop" the mosaic by limiting the extent of the coordinates
+  coord_sf(xlim = c(0.5, 2.5),
+           ylim = c(0.5, 2.5),
+           expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "#FF8000"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=1)) 
 
 p
+   
+plot_tiles <- p + gganimate::transition_time(state) 
 
-#aes(colour = factor(McL)
+animate(plot_tiles, 
+        fps = 30, 
+        duration = 6.5, 
+        end_pause = 50, 
+        height = 600, width = 600)
+
+anim_save("./04_gifs/animation_four_tiles1.gif")
+
+
+
+gganimate::animate(plot_tiles, 
+                   rewind = FALSE,
+                   #end_pause = 10,
+                   fps = 60,
+                   duration = 10,
+                   res = 300,
+                   height = 1.0, 
+                   width = 1.0,
+                   units = "in")
+
+plot_bruce <- plot + gganimate::transition_states(color, transition_length = 3, state_length = 1) + shadow_wake(wake_length = 0.05) 
+
+
+
 
