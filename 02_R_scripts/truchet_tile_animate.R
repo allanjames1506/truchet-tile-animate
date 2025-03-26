@@ -28,6 +28,9 @@ library(ggimage)
 library(data.table)
 # library(patchwork)
 # library(spatialEco)
+library(darklyplot)
+library(ggfx)
+library(tidyr)
 
 # 2. Fonts----
 
@@ -3325,6 +3328,11 @@ tile_types <- data.frame(type = c("A", "B", "C", "D")) %>%
          y = c(2, 2, 1, 1),
          b = 1/2)
 
+# tile_types <- data.frame(type = c("A", "B", "C", "D")) %>%
+#   mutate(x = c(1, 1, 1, 1),
+#          y = c(1, 1, 1, 1),
+#          b = 1/2)
+
 # Elements for assembling the mosaic
 x_c <- tile_types$x
 y_c <- tile_types$y
@@ -4078,6 +4086,8 @@ tile_2 <- tile_2 %>%
   mutate(tile = "2") %>%
   st_sf()
 
+plot(tile_2)
+
 # Tile 3
 tile_3 <- data.frame()
 count <- 0
@@ -4120,10 +4130,10 @@ tile_4 <- tile_4 %>%
   mutate(tile = "4") %>%
   st_sf()
 
-mosaic <- rbind(tile_1,
-                tile_2,
-                tile_3,
-                tile_4)
+mosaic_tile <- rbind(tile_1,
+                     tile_2,
+                     tile_3,
+                     tile_4)
 
 p <- ggplot() +
   # Render the static background mosaic
@@ -4131,14 +4141,14 @@ p <- ggplot() +
   #         aes(fill = factor(color)),
   #         color = NA) +
   # Render the animated tiles: first the tiles of color 1
-  geom_sf(data = mosaic %>%
+  geom_sf(data = mosaic_tile %>%
             filter(color == 1),
           aes(fill = factor(color),
               # It is important to group by `state` and `tile` otherwise the animation gets wacky
               group = interaction(state, tile)),
           color = NA) +
   # Render the animated tiles: then the tiles of color 2
-  geom_sf(data = mosaic %>%
+  geom_sf(data = mosaic_tile %>%
             filter(color == 2),
           aes(fill = factor(color),
               # It is important to group by `state` and `tile` otherwise the animation gets wacky
@@ -4165,9 +4175,8 @@ animate(plot_tiles,
         end_pause = 50, 
         height = 600, width = 600)
 
+
 anim_save("./04_gifs/animation_four_tiles1.gif")
-
-
 
 gganimate::animate(plot_tiles, 
                    rewind = FALSE,
@@ -4182,5 +4191,2366 @@ gganimate::animate(plot_tiles,
 plot_bruce <- plot + gganimate::transition_states(color, transition_length = 3, state_length = 1) + shadow_wake(wake_length = 0.05) 
 
 
+# elements of mclaren speedmark----
 
+rotation = function(a, x, y, type, b){
+  tile <- st_truchet_flex(type = type, b = b)
+  rm <- matrix(c(cos(a), sin(a), 
+                 -sin(a), cos(a)),
+               nrow = 2, 
+               ncol = 2)
+  tile %>%
+    mutate(geometry = st_geometry(tile) * rm + c(x, y)) %>%
+    st_sf()
+}
+
+rotation_aj = function(a, x_c, y_c, type, b){
+  tile <- pmap_dfr(list(x_c, y_c, type, b), aj_truchet_flex) 
+  #tile <- aj_truchet_flex(type = type, b = 1/2)
+  rm <- matrix(c(cos(a), sin(a), 
+                 -sin(a), cos(a)),
+               nrow = 2, 
+               ncol = 2)
+  tile %>%
+    mutate(geometry = st_geometry(tile) * rm + c(x_c, y_c)) %>%
+    st_sf()
+}
+
+pause <- 60
+steps_anim <- 180
+
+a1 <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+       rep(pi/2, pause), # Pause at pi/2 for `pause` 
+       seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(pi, pause), # Pause at pi for `pause` 
+       seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(3 * pi/2, pause), # Pause at 3 * pi/2 for `pause` 
+       seq(3 * pi/2, 2 * pi, pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(2 * pi, pause)) # Pause at 2 * pi for `pause`
+
+a2 <- c(seq(0, -pi/2, -pi/steps_anim), # From zero to -pi/2 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+       rep(-pi/2, pause), # Pause at -pi/2 for `pause` 
+       seq(-pi/2, -pi, -pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(-pi, pause), # Pause at pi for `pause` 
+       seq(-pi, 3 * -pi/2, -pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(3 * -pi/2, pause), # Pause at 3 * pi/2 for `pause` 
+       seq(3 * -pi/2, 2 * -pi, -pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(2 * pi, pause)) # Pause at 2 * pi for `pause`
+
+a3 <- c(seq(0, pi/4, pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(pi/4, pause*0.57142857), # Pause at -pi/4 for `pause`
+        seq(pi/4, pi/2, pi/steps_anim), # From -pi/4 to -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/2, pause*0.57142857), # Pause at -pi/2 for `pause`
+        seq(pi/2, pi/1.333, pi/steps_anim), # From -pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/1.333, pause*0.57142857), # Pause at -pi for `pause`
+        seq(pi/1.333, pi, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi, pause*0.57142857), # Pause at -pi for `pause`
+        seq(pi, 1.667 * pi/1.333, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(1.667 * pi/1.333, pause*0.57142857), # Pause at 3 * -pi/2 for `pause`
+        seq(1.667 * pi/1.333, 3 * pi/2, pi/steps_anim), # From 3 * -pi/4 to 2 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(3 * pi/2, pause*0.57142857), # Pause at 2 * -pi/2 for `pause`
+        seq(3 * pi/2, 2 * pi, pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(2 * pi, pause*0.57142857)) # Pause at 2 * pi for `pause`
+
+a3_rev <- c(seq(2 * -pi, 3 * -pi/2, pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+            rep(3 * -pi/2, pause*0.57142857), # Pause at -pi/4 for `pause`
+            seq(3 * -pi/2, 1.667 * -pi/1.333, pi/steps_anim), # From -pi/4 to -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(1.667 * -pi/1.333, pause*0.57142857), # Pause at -pi/2 for `pause`
+            seq(1.667 * -pi/1.333, -pi, pi/steps_anim), # From -pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(-pi, pause*0.57142857), # Pause at -pi for `pause`
+            seq(-pi, -pi/1.333, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(-pi/1.333, pause*0.57142857), # Pause at -pi for `pause`
+            seq(-pi/1.333, -pi/2, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(-pi/2, pause*0.57142857), # Pause at 3 * -pi/2 for `pause`
+            seq(-pi/2, -pi/4, pi/steps_anim), # From 3 * -pi/4 to 2 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(-pi/4, pause*0.57142857), # Pause at 2 * -pi/2 for `pause`
+            seq(-pi/4, 0, pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+            rep(0, pause*0.57142857)) # Pause at 2 * pi for `pause'
+
+
+a4 <- c(seq(0, -pi/4, -pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(-pi/4, pause*0.57142857), # Pause at -pi/4 for `pause`
+        seq(-pi/4, -pi/2, -pi/steps_anim), # From -pi/4 to -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/2, pause*0.57142857), # Pause at -pi/2 for `pause`
+        seq(-pi/2, -pi/1.333, -pi/steps_anim), # From -pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/1.333, pause*0.57142857), # Pause at -pi for `pause`
+        seq(-pi/1.333, -pi, -pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi, pause*0.57142857), # Pause at -pi for `pause`
+        seq(-pi, 1.667 * -pi/1.333, -pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(1.667 * -pi/1.333, pause*0.57142857), # Pause at 3 * -pi/2 for `pause`
+        seq(1.667 * -pi/1.333, 3 * -pi/2, -pi/steps_anim), # From 3 * -pi/4 to 2 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(3 * -pi/2, pause*0.57142857), # Pause at 2 * -pi/2 for `pause`
+        seq(3 * -pi/2, 2 * -pi, -pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(2 * pi, pause*0.57142857)) # Pause at 2 * pi for `pause`
+
+a5 <- c(seq(0, pi/8, pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(pi/8, pause*0.25), # Pause at -pi/4 for `pause`
+        seq(pi/8, pi/4, pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(pi/4, pause*0.25), # Pause at -pi/4 for `pause`
+        seq(pi/4, pi/2.667, pi/steps_anim), # From -pi/4 to -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/2.667, pause*0.25), # Pause at -pi/2 for `pause`
+        seq(pi/2.667, pi/2, pi/steps_anim), # From -pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/2, pause*0.25), # Pause at -pi for `pause`
+        seq(pi/2, pi/1.6, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/1.6, pause*0.25), # Pause at -pi for `pause`
+        seq(pi/1.6, pi/1.333, pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/1.333, pause*0.25), # Pause at 3 * -pi/2 for `pause`
+        seq(pi/1.333, pi/1.143, pi/steps_anim), # From 3 * -pi/4 to 2 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(pi/1.143, pause*0.25),
+        seq(pi/1.143, pi, pi/steps_anim),
+        rep(pi, pause*0.25),
+        seq(pi, 1.125*pi, pi/steps_anim),
+        rep(1.125*pi, pause*0.25),
+        seq(1.125*pi, 1.25*pi, pi/steps_anim),
+        rep(1.25*pi, pause*0.25),
+        seq(1.25*pi, 1.375*pi, pi/steps_anim),
+        rep(1.375*pi, pause*0.25),
+        seq(1.375*pi, 1.5*pi, pi/steps_anim),
+        rep(1.5*pi, pause*0.25),
+        seq(1.5*pi, 1.625*pi, pi/steps_anim),
+        rep(1.625*pi, pause*0.25),
+        seq(1.625*pi, 1.75*pi, pi/steps_anim),
+        rep(1.75*pi, pause*0.25),
+        seq(1.75*pi, 1.875*pi, pi/steps_anim),
+        rep(1.875*pi, pause*0.25),
+        seq(1.875*pi, 2*pi, pi/steps_anim),
+        rep(2*pi, pause*0.25)) 
+
+a6 <- c(seq(0, -pi/8, -pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(-pi/8, pause*0.25), # Pause at -pi/4 for `pause`
+        seq(-pi/8, -pi/4, -pi/steps_anim), # From zero to -pi/4 in `-pi/steps_anim` increments, basically a 90 degrees rotation
+        rep(-pi/4, pause*0.25), # Pause at -pi/4 for `pause`
+        seq(-pi/4, -pi/2.667, -pi/steps_anim), # From -pi/4 to -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/2.667, pause*0.25), # Pause at -pi/2 for `pause`
+        seq(-pi/2.667, -pi/2, -pi/steps_anim), # From -pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/2, pause*0.25), # Pause at -pi for `pause`
+        seq(-pi/2, -pi/1.6, -pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/1.6, pause*0.25), # Pause at -pi for `pause`
+        seq(-pi/1.6, -pi/1.333, -pi/steps_anim), # From -pi to 3 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/1.333, pause*0.25), # Pause at 3 * -pi/2 for `pause`
+        seq(-pi/1.333, -pi/1.143, -pi/steps_anim), # From 3 * -pi/4 to 2 * -pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+        rep(-pi/1.143, pause*0.25),
+        seq(-pi/1.143, -pi, -pi/steps_anim),
+        rep(-pi, pause*0.25),
+        seq(-pi, -1.125*pi, -pi/steps_anim),
+        rep(-1.125*pi, pause*0.25),
+        seq(-1.125*pi, -1.25*pi, -pi/steps_anim),
+        rep(-1.25*pi, pause*0.25),
+        seq(-1.25*pi, -1.375*pi, -pi/steps_anim),
+        rep(-1.375*pi, pause*0.25),
+        seq(-1.375*pi, -1.5*pi, -pi/steps_anim),
+        rep(-1.5*pi, pause*0.25),
+        seq(-1.5*pi, -1.625*pi, -pi/steps_anim),
+        rep(-1.625*pi, pause*0.25),
+        seq(-1.625*pi, -1.75*pi, -pi/steps_anim),
+        rep(-1.75*pi, pause*0.25),
+        seq(-1.75*pi, -1.875*pi, -pi/steps_anim),
+        rep(-1.875*pi, pause*0.25),
+        seq(-1.875*pi, -2*pi, -pi/steps_anim),
+        rep(2*pi, pause*0.25))
+        
+
+# a_alt <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+#            seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+#            seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+#            seq(3 * pi/2, 2 * pi, pi/steps_anim)) # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+# 
+# a_alt2 <- c(seq(0, -pi/2, -pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+#             seq(-pi/2, -pi, -pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+#             seq(-pi, 3 * -pi/2, -pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+#             seq(3 * -pi/2, 2 * -pi, -pi/steps_anim)) # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+
+
+# Set seed
+set.seed(7336)
+
+tile_type <- sample(c("Ac", "Bc", "Cc", "Dc"),
+                    4, 
+                    replace = TRUE)
+
+tile_type_alt_aj <- c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")
+
+# Create a data frame with the spots for the background tiles
+background_aj <- data.frame(x = c(1, 1, 1, 1),
+                            y = c(1, 1, 1, 1),
+                            tiles = tile_type_alt_aj,
+                            b = 1/2) %>%
+  aj_truchet_flex()
+
+tile_types <- data.frame(type = c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")) %>%
+  mutate(x = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+         y = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+         b = 1/2)
+
+# Elements for assembling the mosaic
+x_c <- tile_types$x
+y_c <- tile_types$y
+type <- as.character(tile_types$type)
+b <- tile_types$b
+
+tile_types_alt <- data.frame(type = c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")) %>%
+  mutate(x = runif(11, 0.5, 1.5),
+         y = runif(11, 0.5, 1.5),
+         b = 1/2)
+
+# Elements for assembling the mosaic
+x_c_alt <- tile_types_alt$x
+y_c_alt <- tile_types_alt$y
+type_alt <- as.character(tile_types_alt$type)
+b_alt <- tile_types_alt$b
+
+
+# test <- pmap_dfr(list(x_c, y_c, type, b), aj_truchet_flex)
+# mosaic_chequered_pattern_try <- df_chequered_pattern_very_small  %>% st_truchet_fm() 
+
+pmap_dfr(list(x_c_alt, y_c_alt, type_alt, b_alt), aj_truchet_flex) %>%
+  #mutate(colour = tidyr::replace_na(colour, 1)) %>% 
+  ggplot() +
+  geom_sf(aes(fill = colour),
+          color = "black",
+          size = 2)+
+  scale_fill_distiller(direction = 1) +
+  theme_void() +
+  theme(legend.position = "none")
+
+pmap_dfr(list(x_c_alt, y_c_alt, type_alt, b_alt), aj_truchet_flex) %>%
+  #mutate(colour = tidyr::replace_na(colour, 1)) %>% 
+  ggplot() +
+  geom_sf(aes(fill = colour),
+          color = '#73AEA4',
+          show.legend = FALSE) +
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
+                       high = "black",
+                       midpoint = 1.5) +
+  #scale_colour_brewer(palette = "Greens") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=3)) 
+
+# Tile 1
+# Initialize an empty data frame
+tile_1 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a1){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1 <- rbind(tile_1,
+                  data.frame(rotation_aj(a = i, 
+                                      # Coordinates of tile
+                                      x_c = 1, 
+                                      y_c = 1,
+                                      type = tile_type_alt_aj[1],
+                                      b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1 <- tile_1 %>%
+  mutate(tile = "1") %>%
+  st_sf() %>% 
+  slice(1:596) 
+
+# Tile 2
+tile_2 <- data.frame()
+count <- 0
+
+for(i in a2){
+  count <- count + 1
+  tile_2 <- rbind(tile_2,
+                  data.frame(rotation_aj(a = i, 
+                                      # Coordinates of tile
+                                      x_c = 1, 
+                                      y_c = 1, 
+                                      type = tile_type_alt_aj[2],
+                                      b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2 <- tile_2 %>%
+  mutate(tile = "2") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+
+# Tile 3
+tile_3 <- data.frame()
+count <- 0
+
+for(i in a3_rev){
+  count <- count + 1
+  tile_3 <- rbind(tile_3,
+                  data.frame(rotation_aj(a = i, 
+                                      # Coordinates of tile
+                                      x_c = 1, 
+                                      y_c = 1, 
+                                      type = tile_type_alt_aj[3],
+                                      b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3 <- tile_3 %>%
+  mutate(tile = "3") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+
+# Tile 4
+tile_4 <- data.frame()
+count <- 0
+
+for(i in a4){
+  count <- count + 1
+  tile_4 <- rbind(tile_4,
+                  data.frame(rotation_aj(a = i, 
+                                      # Coordinates of tile
+                                      x_c = 1, 
+                                      y_c = 1, 
+                                      type = tile_type_alt_aj[4],
+                                      b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4 <- tile_4 %>%
+  mutate(tile = "4") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 5
+# Initialize an empty data frame
+tile_5 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a5){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_5 <- rbind(tile_5,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[5],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_5 <- tile_5 %>%
+  mutate(tile = "5") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 6
+# Initialize an empty data frame
+tile_6 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a6){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_6 <- rbind(tile_6,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[6],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_6 <- tile_6 %>%
+  mutate(tile = "6") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 7
+# Initialize an empty data frame
+tile_7 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a1){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_7 <- rbind(tile_7,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[7],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_7 <- tile_7 %>%
+  mutate(tile = "7") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 8
+# Initialize an empty data frame
+tile_8 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a2){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_8 <- rbind(tile_8,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[8],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_8 <- tile_8 %>%
+  mutate(tile = "8") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 9
+# Initialize an empty data frame
+tile_9 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a3_rev){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_9 <- rbind(tile_9,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[9],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_9 <- tile_9 %>%
+  mutate(tile = "9") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 10
+# Initialize an empty data frame
+tile_10 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a4){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_10 <- rbind(tile_10,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[10],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_10 <- tile_10 %>%
+  mutate(tile = "10") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 11
+# Initialize an empty data frame
+tile_11 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a5){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_11 <- rbind(tile_11,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 1, 
+                                         y_c = 1,
+                                         type = tile_type_alt_aj[11],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_11 <- tile_11 %>%
+  mutate(tile = "11") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 1a
+# Initialize an empty data frame
+tile_1a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a2){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1a <- rbind(tile_1a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[1],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1a <- tile_1a %>%
+  mutate(tile = "1a") %>%
+  st_sf() %>% 
+  slice(1:596) 
+
+# Tile 2a
+tile_2a <- data.frame()
+count <- 0
+
+for(i in a3_rev){
+  count <- count + 1
+  tile_2a <- rbind(tile_2a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5, 
+                                         type = tile_type_alt_aj[2],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2a <- tile_2a %>%
+  mutate(tile = "2a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+
+# Tile 3a
+tile_3a <- data.frame()
+count <- 0
+
+for(i in a4){
+  count <- count + 1
+  tile_3a <- rbind(tile_3a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5, 
+                                         type = tile_type_alt_aj[3],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3a <- tile_3a %>%
+  mutate(tile = "3a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+
+# Tile 4a
+tile_4a <- data.frame()
+count <- 0
+
+for(i in a5){
+  count <- count + 1
+  tile_4a <- rbind(tile_4a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5, 
+                                         type = tile_type_alt_aj[4],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4a <- tile_4a %>%
+  mutate(tile = "4a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 5a
+# Initialize an empty data frame
+tile_5a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a6){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_5a <- rbind(tile_5a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[5],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_5a <- tile_5a %>%
+  mutate(tile = "5a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 6a
+# Initialize an empty data frame
+tile_6a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a1){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_6a <- rbind(tile_6a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[6],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_6a <- tile_6a %>%
+  mutate(tile = "6a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 7a
+# Initialize an empty data frame
+tile_7a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a2){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_7a <- rbind(tile_7a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[7],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_7a <- tile_7a %>%
+  mutate(tile = "7a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 8a
+# Initialize an empty data frame
+tile_8a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a3_rev){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_8a <- rbind(tile_8a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[8],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_8a <- tile_8a %>%
+  mutate(tile = "8a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 9a
+# Initialize an empty data frame
+tile_9a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a4){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_9a <- rbind(tile_9a,
+                  data.frame(rotation_aj(a = i, 
+                                         # Coordinates of tile
+                                         x_c = 0.5, 
+                                         y_c = 0.5,
+                                         type = tile_type_alt_aj[9],
+                                         b = 1/2), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_9a <- tile_9a %>%
+  mutate(tile = "9a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 10a
+# Initialize an empty data frame
+tile_10a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a5){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_10a <- rbind(tile_10a,
+                   data.frame(rotation_aj(a = i, 
+                                          # Coordinates of tile
+                                          x_c = 0.5, 
+                                          y_c = 0.5,
+                                          type = tile_type_alt_aj[10],
+                                          b = 1/2), 
+                              state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_10a <- tile_10a %>%
+  mutate(tile = "10a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# Tile 11a
+# Initialize an empty data frame
+tile_11a <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a6){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_11a <- rbind(tile_11a,
+                   data.frame(rotation_aj(a = i, 
+                                          # Coordinates of tile
+                                          x_c = 0.5, 
+                                          y_c = 0.5,
+                                          type = tile_type_alt_aj[11],
+                                          b = 1/2), 
+                              state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_11a <- tile_11a %>%
+  mutate(tile = "11a") %>%
+  st_sf() %>% 
+  slice(1:596)
+
+# normal truchet 4 tiles rotating----
+
+a <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+       rep(pi/2, pause), # Pause at pi/2 for `pause` 
+       seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(pi, pause), # Pause at pi for `pause` 
+       seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(3 * pi/2, pause), # Pause at 3 * pi/2 for `pause` 
+       seq(3 * pi/2, 2 * pi, pi/steps_anim), # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+       rep(2 * pi, pause)) # Pause at 2 * pi for `pause` 
+
+a_alt <- c(seq(0, pi/2, pi/steps_anim), # From zero to pi/2 in `pi/steps_anim` increments, basically a 90 degrees rotation
+           seq(pi/2, pi, pi/steps_anim), # From pi/2 to pi in `pi/steps_anim` increments, another 90 degrees rotation
+           seq(pi, 3 * pi/2, pi/steps_anim), # From pi to 3 * pi/2 in `pi/steps_anim` increments, another 90 degrees rotation
+           seq(3 * pi/2, 2 * pi, pi/steps_anim)) # From 3 * pi/2 to 2 * pi in `pi/steps_anim` increments, another 90 degrees rotation
+
+
+# Set seed
+set.seed(7336)
+
+tile_type <- sample(c("Ac", "Bc", "Cc", "Dc"),
+                    4, 
+                    replace = TRUE)
+
+tile_type_alt <- c("Ac", "Bc", "Ac", "Bc")
+
+# Create a data frame with the spots for the background tiles
+background <- data.frame(x = c(1, 1, 2, 2),
+                         y = c(1, 2, 2, 1),
+                         tiles = tile_type_alt,
+                         b = 0.05) %>%
+  st_truchet_fm()
+
+#mosaic_chequered_pattern_try <- df_chequered_pattern_very_small  %>% st_truchet_fm() 
+
+ggplot() +
+  geom_sf(data = background,
+          aes(fill = factor(color)),
+          color = NA)+
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c("1" = "#0057b7", "2" = "#ffd700"))
+
+ggplot() +
+  geom_sf(data = mosaic_chequered_pattern,
+          aes(fill = color),
+          color = '#73AEA4',
+          show.legend = FALSE) +
+  scale_fill_gradient2(low = "white", 
+                       mid = "grey", 
+                       high = "black",
+                       midpoint = 1.5) +
+  #scale_colour_brewer(palette = "Greens") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=3)) 
+
+# Tile 1
+# Initialize an empty data frame
+tile_1_s <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a_alt){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1_s <- rbind(tile_1_s,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 0.5, 
+                                      y = 0.5,
+                                      type = tile_type_alt[1],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1_s <- tile_1_s %>%
+  mutate(tile = "1") %>%
+  st_sf()
+
+# Tile 2
+tile_2_s <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_2_s <- rbind(tile_2_s,
+                    data.frame(rotation(a = i, 
+                                        # Coordinates of tile
+                                        x = 1.5, 
+                                        y = 1.5, 
+                                        type = tile_type_alt[2],
+                                        b = count*0.0013), 
+                               state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2_s <- tile_2_s %>%
+  mutate(tile = "2") %>%
+  st_sf()
+
+#plot(tile_2)
+
+# Tile 3
+tile_3_s <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_3_s <- rbind(tile_3_s,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 0.5, 
+                                      y = 1.5, 
+                                      type = tile_type_alt[3],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3_s <- tile_3_s %>%
+  mutate(tile = "3") %>%
+  st_sf()
+
+# Tile 4
+tile_4_s <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_4_s <- rbind(tile_4_s,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 1.5, 
+                                      y = 0.5, 
+                                      type = tile_type_alt[4],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4_s <- tile_4_s %>%
+  mutate(tile = "4") %>%
+  st_sf()
+
+mosaic_tile_s <- rbind(tile_1_s,
+                       tile_2_s,
+                       tile_3_s,
+                       tile_4_s)
+
+
+mosaic <- rbind(tile_1,
+                tile_2,
+                #tile_3,
+                tile_4,
+                tile_5,
+                #tile_6,
+                tile_7,
+                tile_8,
+                tile_9,
+                #tile_10,
+                tile_11,
+                tile_3a,
+                tile_6a,
+                tile_10a)
+
+mosaic_a <- rbind(tile_1a,
+                  tile_2a,
+                  tile_3a,
+                  tile_4a,
+                  tile_5a,
+                  tile_6a,
+                  tile_7a,
+                  tile_8a,
+                  tile_9a,
+                  tile_10a,
+                  tile_11a)
+
+mosaic_with_a <- rbind(mosaic,
+                       mosaic_a)
+
+mosaic_tile_s_colour <- mosaic_tile_s %>% 
+  rename(colour = color)
+
+mosaic <- mosaic %>% 
+  bind_rows(mosaic_tile_s_colour)
+
+mosaic <- rbind(tile_1,
+                tile_2,
+                tile_3,
+                tile_4,
+                tile_8,
+                tile_9,
+                tile_11)
+
+mosaic <- rbind(tile_1,
+                tile_2,
+                tile_3,
+                tile_4,
+                tile_5,
+                tile_6)
+
+image_path <- "./00_raw_data/"
+
+mclaren_logo <- paste0(image_path, 'McLaren_logo1.png')
+
+mclaren_logo_outline <- paste0(image_path, 'McL_speedmark_outline.png')
+
+dTP1_alt = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115),
+                      y = c(77.5, 77.5, 77.5, 77.5, 75, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5),
+                      t = 1:21,
+                      McL=rep("dtP1", 21),
+                      Image = rep(mclaren_logo, 21))
+
+image_tibble <- tibble(x = runif(596, 0.5, 1.5),
+                       y = runif(596, 0.5, 1.5),
+                       state = as.numeric(1:596),
+                       Image = rep(mclaren_logo, 596),
+                       Size = runif(596, 0.01, 0.05),
+                       angle = rep(c(pi/3, 2*pi/3, pi, pi/6), 149))
+
+image_tibble_alt <- tibble(x = 1,
+                           y = 0.8,
+                           state = as.numeric(1:596),
+                           Image = rep(mclaren_logo, 596),
+                           #Size = runif(596, 0.01, 0.05),
+                           Size = seq(0.01, 0.05, length.out = 596),
+                           angle = rep(c(pi/3, 2*pi/3, pi, pi/6), 149))
+
+image_tibble_less_logo <- image_tibble_alt %>% 
+  mutate(less_image = if_else(row_number() %% 20 == 0, Image, NA))
+
+glimpse(mosaic)
+
+p <- ggplot() +
+  # Render the static background mosaic
+  # geom_sf(data = background,
+  #         aes(fill = factor(color)),
+  #         color = NA) +
+  # Render the animated tiles: first the tiles of color 1
+  # geom_sf(data = mosaic %>%
+  #           filter(colour == 1),
+  #         aes(fill = factor(colour),
+  #             # It is important to group by `state` and `tile` otherwise the animation gets wacky
+  #             group = interaction(state, tile)),
+  #         color = NA) +
+  # Render the animated tiles: then the tiles of color 2
+with_outer_glow(geom_sf(data = mosaic %>%
+            filter(colour == 2),
+          aes(fill = factor(tile),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA,
+          alpha = 0.5), colour = "#FF8000", sigma = 5, expand = 5) +
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c('1' = '#FF0000', '2' = '#FF2000', 
+                               '3' = 'grey70', '4' = '#FF6000',
+                               '5' = '#FF8000', '6' = '#FF1000',
+                               '7' = '#FF3000', '8' = '#FF5000',
+                               '9' = '#FF7000', '10' = '#FF0000',
+                               '11' = '#FF2000',
+                               '1a' = '#FF0000', '2a' = '#FF2000', 
+                               '3a' = 'grey70', '4a' = '#FF6000',
+                               '5a' = '#FF8000', '6a' = '#FF1000',
+                               '7a' = '#FF3000', '8a' = '#FF5000',
+                               '9a' = '#FF7000', '10a' = '#FF0000',
+                               '11a' = '#FF2000')) +
+  # with_outer_glow(geom_point(data = stars_tibble %>% group_by(t),
+  #                            aes(x = x,
+  #                                y = y), colour = 'black'), colour = "#FF8000", sigma = 5, expand = 5) +
+  # with_outer_glow(geom_image(data = image_tibble_alt, 
+  #                            aes(x = x,
+  #                                y = y, 
+  #                                image = Image,
+  #                                group = Image), size = seq(0.01, 0.65, length.out = 596)), colour = "#FF8000", sigma = 5, expand = 5) +
+  # "Crop" the mosaic by limiting the extent of the coordinates
+  coord_sf(xlim = c(-1, 3),
+           ylim = c(-1, 3),
+           expand = FALSE) +
+  #darklyplot::theme_dark2() 
+  theme_void() +
+  # theme(legend.position = "none",
+  #       panel.background = element_rect(fill='transparent'),
+  #       plot.background = element_rect(fill='transparent', color=NA),
+  #       panel.grid.major = element_blank(),
+  #       panel.grid.minor = element_blank(),
+  #       legend.background = element_rect(fill='transparent'),
+  #       legend.box.background = element_rect(fill='transparent'))
+theme(legend.position = "none",
+        plot.background = element_rect(fill = "floralwhite"),
+        panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=2)) 
+
+# case_when(mosaic$state <= 100 ~ 0.05,
+#           mosaic$state >100 & mosaic$state <= 200 ~ 0.1,
+#           mosaic$state >200 & mosaic$state <= 300 ~ 0.15,
+#           mosaic$state >300 & mosaic$state <= 400 ~ 0.2,
+#           mosaic$state >400 & mosaic$state <= 500 ~ 0.225,
+#           TRUE ~ 0.25)
+
+p
+
+plot_tiles <- p + gganimate::transition_time(state) 
+
+animate(plot_tiles, 
+        fps = 30, 
+        duration = 13, 
+        end_pause = 20, 
+        height = 600, width = 600)
+
+anim_save("./04_gifs/animation_four_McL_shapes4.gif")
+
+gganimate::animate(plot_tiles, 
+                   rewind = FALSE,
+                   #end_pause = 10,
+                   fps = 60,
+                   duration = 10,
+                   res = 300,
+                   height = 1.0, 
+                   width = 1.0,
+                   units = "in")
+
+plot_bruce <- plot + gganimate::transition_states(color, transition_length = 3, state_length = 1) + shadow_wake(wake_length = 0.05) 
+
+p <- map_dfr(1:25, ~tibble(y = seq(1, .x, length.out = 25), t = 1:25)) %>% 
+  mutate(x = runif(n())) %>% 
+  slice(1:596) %>%
+  ggplot(aes(x, y)) +
+  geom_point(color = 'white') +
+  coord_polar() +
+  transition_states(t) + shadow_wake(0.5)
+
+
+stars_tibble <- map_dfr(1:25, ~tibble(y = seq(1, .x, length.out = 25), t = 1:25)) %>% 
+  mutate(x = runif(n())) %>% 
+  slice(1:596) %>% 
+  mutate(state = as.numeric(1:596),
+         y = y/10)
+
+glimpse(stars_tibble) 
+
+# wave patterns----
+# https://github.com/aschinchon/spinning-pins/blob/master/spinning_pins.R
+
+# 1st pattern
+n_points  <- 2
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 2*pi, length.out = n_points)
+
+# 2nd pattern
+n_points  <- 20
+closeness <- 0
+speed     <- 2*pi/n_points
+v_angles <- seq(0, by=pi/2, length.out = n_points)
+
+# 3rd pattern
+n_points  <- 20
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 0, length.out = n_points)
+
+# 4th pattern
+n_points  <- 20
+closeness <- pi/4
+speed     <- 2*pi/n_points
+v_angles <- seq(0, by=pi/4, length.out = n_points)
+
+# This function creates a grid of vectors (coordinates and angle)
+# using a initial vector of angles adding factor f each iteration
+create_grid <- function(n, a, f) {
+  lapply(seq_len(n), function (x) {a+f*(x-1)}) %>% 
+    do.call("rbind", .) %>% 
+    melt(varnames=c('x', 'y'), value.name="angle")
+}
+
+# This is what makes to spin the pins 
+lapply(1:(n_points+1), function(x) {
+  create_grid(n_points, 
+              v_angles+(x-1)*speed,
+              closeness)}) %>% 
+  as.list(.) %>% 
+  rbindlist(idcol="frame") -> df
+
+mosaic_tile_numeric <- mosaic_tile %>% 
+  rename(frame = state) %>% 
+  mutate(frame = as.integer(frame))
+
+# Plot pins using frame as transition time
+ggplot(df) +
+  geom_spoke(aes(x=x, y=y, angle = angle), radius = 1) +
+  geom_point(aes(x+cos(angle), y+sin(angle)), size=4) +
+  # geom_sf(data = mosaic_tile %>%
+  #           filter(color == 1),
+  #         aes(fill = factor(color),
+  #             # It is important to group by `state` and `tile` otherwise the animation gets wacky
+  #             group = interaction(state, tile)),
+  #         color = NA) +
+  theme_void() + 
+  coord_fixed() +
+  transition_time(time=frame)
+
+glimpse(mosaic_tile_numeric)
+
+# 4 tiles----
+# Tile 1
+# Initialize an empty data frame
+tile_1 <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a_alt){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1 <- rbind(tile_1,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 1, 
+                                      y = 1,
+                                      type = tile_type_alt[1],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1 <- tile_1 %>%
+  mutate(tile = "1") %>%
+  st_sf()
+
+# Tile 2
+tile_2 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_2 <- rbind(tile_2,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 2, 
+                                      y = 2, 
+                                      type = tile_type_alt[2],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2 <- tile_2 %>%
+  mutate(tile = "2") %>%
+  st_sf()
+
+plot(tile_2)
+
+# Tile 3
+tile_3 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_3 <- rbind(tile_3,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 1, 
+                                      y = 2, 
+                                      type = tile_type_alt[3],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3 <- tile_3 %>%
+  mutate(tile = "3") %>%
+  st_sf()
+
+# Tile 4
+tile_4 <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_4 <- rbind(tile_4,
+                  data.frame(rotation(a = i, 
+                                      # Coordinates of tile
+                                      x = 2, 
+                                      y = 1, 
+                                      type = tile_type_alt[4],
+                                      b = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4 <- tile_4 %>%
+  mutate(tile = "4") %>%
+  st_sf()
+
+mosaic_tile <- rbind(tile_1,
+                     tile_2,
+                     tile_3,
+                     tile_4)
+
+p <- ggplot() +
+  # Render the static background mosaic
+  # geom_sf(data = background,
+  #         aes(fill = factor(color)),
+  #         color = NA) +
+  # Render the animated tiles: first the tiles of color 1
+  geom_sf(data = mosaic_tile %>%
+            filter(color == 1),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  # Render the animated tiles: then the tiles of color 2
+  geom_sf(data = mosaic_tile %>%
+            filter(color == 2),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c("1" = "#FF8000", "2" = "#B6BABD")) + 
+  # "Crop" the mosaic by limiting the extent of the coordinates
+  coord_sf(xlim = c(0.5, 2.5),
+           ylim = c(0.5, 2.5),
+           expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "#FF8000"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=1)) 
+
+p
+
+plot_tiles <- p + gganimate::transition_time(state) 
+
+animate(plot_tiles, 
+        fps = 30, 
+        duration = 6.5, 
+        end_pause = 50, 
+        height = 600, width = 600)
+
+df_test <- expand.grid(x = 1:10, y=1:10)
+
+df_test$angle <- runif(100, 0, 2*pi)
+df_test$speed <- runif(100, 0, sqrt(0.1 * df_test$x))
+
+ggplot(df_test, aes(x, y)) +
+  geom_point() +
+  geom_spoke(aes(angle = angle), radius = 0.5) 
+
+ggplot(df_test, aes(x, y)) +
+  geom_point() +
+  geom_spoke(aes(angle = angle), radius = speed)
+
+t <- seq(0,
+         1,
+         length=50)
+
+pts <- matrix( c(0, 1,
+                 0.1, 0.1,
+                 1, 0),
+               nrow=3,
+               ncol=2,
+               byrow=TRUE)
+
+line_1 <- bezier::bezier(t = t,
+                         p = pts)
+
+line_1 <- data.frame(id = 1,
+                     geometry = sf::st_linestring(line_1) %>%
+                       sf::st_geometry()) %>%
+  sf::st_sf()
+
+plot(line_1)
+
+# https://blog.djnavarro.net/posts/2024-11-24_bezier-curves/
+
+t_bez <- seq(0, 1, length=100)
+
+p_bez <- matrix(c(0,0,0, 
+                  1,4,3, 
+                  2,2,0, 
+                  3,0,2, 
+                  5,5,0), nrow=5, ncol=3, byrow=TRUE)
+
+bezier_points <- bezier::bezier(t=t_bez, p=p_bez)
+
+bezier_points <- data.frame(id = 1,
+                            geometry = sf::st_linestring(bezier_points) %>%
+                              sf::st_geometry()) %>%
+  sf::st_sf()
+
+plot(bezier_points)
+
+bernstein <- function(beta, t = seq(0, 1, .01)) {
+  n <- length(beta) - 1
+  w <- choose(n, 0:n)
+  b <- rep(0, length(t))
+  for(v in 0:n) {
+    b = b + beta[v + 1] * w[v + 1] * t^v * (1 - t)^(n-v)
+  }
+  b
+}
+
+control <- tibble(
+  x = c(1, 5, 8),
+  y = c(1, 1, 6)
+)
+
+plot(control)
+
+bezier <- tibble(
+  t = seq(0, 1, .01),
+  x = bernstein(control$x, t),
+  y = bernstein(control$y, t)
+)
+
+ggplot() + 
+  aes(x, y) +
+  geom_path(data = bezier) + 
+  geom_point(data = control, color = "red") + 
+  coord_equal(xlim = c(0, 10), ylim = c(0, 10)) + 
+  theme_bw()
+
+control <- tibble(
+  x = c(0, 0.25, 0.5, 0.75, 1),
+  y = c(1, 0.1, 0.5, 0.9, 0)
+)
+
+plot(control)
+
+bezier <- tibble(
+  t = seq(0, 1, .01),
+  x = bernstein(control$x, t),
+  y = bernstein(control$y, t)
+)
+ggplot() + 
+  aes(x, y) +
+  geom_path(data = bezier) + 
+  geom_point(data = control, color = "red") + 
+  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme_bw()
+
+st_truchet_flex_bezier <- function(x = 0, y = 0, type = "Abez", b1 = 1/2, b2 = 1/2, b3 = 1/2, b4 = 1/2){
+  
+  #' Flexible Truchet tiles
+  #'
+  #' @param x A number with the x coordinate of the center of the tile
+  #' @param y A number with the y coordinate of the center of the tile
+  #' @param type A single character to designate a type of tile; currently supported options are "Ac", "Bc", "Cc", "Dc", "As", "Bs", "Cs", "Ds"
+  #' @param b A number between zero and one that controls the shape of the boundary between the two parts of the tile
+  #' @return A list with one or more objects of type \code{sf} representing one or more tiles depending on type
+  #' @importFrom rlang .data
+  #' @export
+  #' @examples
+  #' st_truchet_flex_bezier(type = "Abez")
+  #' @note For a discussion of Truchet patterns see: Robert Bosch & Urchin Colley (2013) Figurative mosaics from flexible Truchet tiles, Journal of Mathematics and the Arts, 7:3-4, 122-135, \url{10.1080/17513472.2013.838830}
+  
+  # Validate inputs
+  checkmate::assertChoice(type, c("Abez", "Bbez", "Cbez", "Dbez"))
+  # b1 must be a value beween zero and 1
+  checkmate::assert_number(b1, lower = 0, upper = 1)
+  # b2 must be a value beween zero and 1
+  checkmate::assert_number(b2, lower = 0, upper = 1)
+  # b3 must be a value beween zero and 1
+  checkmate::assert_number(b3, lower = 0, upper = 1)
+  # b4 must be a value beween zero and 1
+  checkmate::assert_number(b4, lower = 0, upper = 1)
+  
+  # Adjust values of b1 in case that there is an exact zero or one, which messes up the selection of colors later on
+  if(b1 == 0) b1 <- 1/100
+  if(b1 == 1) b1 <- 99/100
+  
+  # Adjust values of b2 in case that there is an exact zero or one, which messes up the selection of colors later on
+  if(b2 == 0) b2 <- 1/100
+  if(b2 == 1) b2 <- 99/100
+  
+  # Adjust values of b3 in case that there is an exact zero or one, which messes up the selection of colors later on
+  if(b3 == 0) b3 <- 1/100
+  if(b3 == 1) b3 <- 99/100
+  
+  # Adjust values of b4 in case that there is an exact zero or one, which messes up the selection of colors later on
+  if(b4 == 0) b4 <- 1/100
+  if(b4 == 1) b4 <- 99/100
+  
+  ## CREATE BASE TILE
+  #  Define square polygon
+  tile <- matrix(c(0, 0,
+                   0, 1,
+                   1, 1,
+                   1, 0,
+                   0, 0),
+                 ncol = 2,
+                 byrow = TRUE)
+  
+  # Convert coordinates to polygons and then to simple features
+  tile <- data.frame(geometry = sf::st_polygon(list(tile)) %>%
+                       sf::st_sfc()) %>%
+    sf::st_as_sf()
+  
+  ## BASE TILE DONE
+  
+  # Tile types
+  
+  switch(type,
+         
+         "Abez" ={
+           ## ADORNMENTS
+           # Define bezier control points for line
+           
+           control_Abez <- tibble(
+             x = c(0, b1, 0.5, b3, 1),
+             y = c(1, b2, 0.5, b4, 0)
+           )
+           
+           line_1 <- bezier::bezier(t = seq(0, 1, .01),
+                                    p = control_Abez)
+           
+           # Convert points to line
+           line_1 <- data.frame(id = 1,
+                                geometry = sf::st_linestring(line_1) %>%
+                                  sf::st_geometry()) %>%
+             sf::st_sf()
+           
+           # Split the base tile to give the final tile
+           tile <- tile %>%
+             lwgeom::st_split(line_1) %>%
+             sf::st_collection_extract() %>%
+             dplyr::mutate(color = 2:1)
+           ## ADORNMENTS DONE
+         },
+         
+         "Bbez" ={
+           ## ADORNMENTS
+           # Define bezier control points for line
+           
+           control_Bbez <- tibble(
+             x = c(0, b1, 0.5, 1 - b3, 1),
+             y = c(1, b2, 0.5, 1 - b4, 0)
+           )
+           
+           # Compute bezier curve
+           line_1 <- bezier::bezier(t = seq(0, 1, .01),
+                                    p = control_Bbez)
+           
+           # Convert points to line
+           line_1 <- data.frame(id = 1,
+                                geometry = sf::st_linestring(line_1) %>%
+                                  sf::st_geometry()) %>%
+             sf::st_sf()
+           
+           # Split the base tile to give the final tile
+           tile <- tile %>%
+             lwgeom::st_split(line_1) %>%
+             sf::st_collection_extract() %>%
+             dplyr::mutate(color = 2:1)
+           ## ADORNMENTS DONE
+         },
+         
+         "Cbez" ={
+           ## ADORNMENTS
+           # Define bezier control points for line
+           
+           control_Cbez <- tibble(
+             x = c(0, b1, 0.5, b3, 1),
+             y = c(1, b2, 0.5, b4, 0)
+           )
+           
+           # Compute bezier curve
+           line_1 <- bezier::bezier(t = seq(0, 1, .01),
+                                    p = control_Cbez)
+           
+           # Convert points to line
+           line_1 <- data.frame(id = 1,
+                                geometry = sf::st_linestring(line_1) %>%
+                                  sf::st_geometry()) %>%
+             sf::st_sf()
+           
+           # Split the base tile to give the final tile
+           tile <- tile %>%
+             lwgeom::st_split(line_1) %>%
+             sf::st_collection_extract() %>%
+             dplyr::mutate(color = 1:2)
+           ## ADORNMENTS DONE
+         },
+         
+         "Dbez" ={
+           ## ADORNMENTS
+           # Define bezier control points for line
+           
+           control_Dbez <- tibble(
+             x = c(0, b1, 0.5, 1 - b3, 1),
+             y = c(1, b2, 0.5, 1 - b4, 0)
+           )
+           
+           # Compute bezier curve
+           line_1 <- bezier::bezier(t = seq(0, 1, .01),
+                                    p = control_Dbez)
+           
+           # Convert points to line
+           line_1 <- data.frame(id = 1,
+                                geometry = sf::st_linestring(line_1) %>%
+                                  sf::st_geometry()) %>%
+             sf::st_sf()
+           
+           # Split the base tile to give the final tile
+           tile <- tile %>%
+             lwgeom::st_split(line_1) %>%
+             sf::st_collection_extract() %>%
+             dplyr::mutate(color = 1:2)
+           ## ADORNMENTS DONE
+         }
+  )
+  
+  # Translate so that the tiles are centered on the point (0, 0)
+  tile <- tile %>%
+    dplyr::mutate(geometry = sf::st_geometry(tile) + c(-0.5, - 0.5))
+  
+  ## FINISH TILES
+  # position at point (x, y)
+  tile <- tile %>%
+    dplyr::mutate(geometry = sf::st_geometry(tile) + c(x, y))
+  
+  ## TILES DONE
+  
+  return(tile)
+}
+
+# 5 Bezier tiles----
+
+# bezier rotation----
+
+rotation_bezier = function(a, x, y, type, b1, b2, b3, b4){
+  tile <- st_truchet_flex_bezier(type = type, b1 = b1, b2 = b2, b3 = b3, b4 = b4)
+  rm <- matrix(c(cos(a), sin(a), 
+                 -sin(a), cos(a)),
+               nrow = 2, 
+               ncol = 2)
+  tile %>%
+    mutate(geometry = st_geometry(tile) * rm + c(x, y)) %>%
+    st_sf()
+}
+
+rotation_bezier_thin = function(a, x, y, type, b1, b2, b3, b4){
+  tile <- st_truchet_flex_bezier_thin(type = type, b1 = b1, b2 = b2, b3 = b3, b4 = b4)
+  rm <- matrix(c(cos(a), sin(a), 
+                 -sin(a), cos(a)),
+               nrow = 2, 
+               ncol = 2)
+  tile %>%
+    mutate(geometry = st_geometry(tile) * rm + c(x, y)) %>%
+    st_sf()
+}
+
+tile_type_bezier <- c("Dbez", "Bbez", "Dbez", "Bbez")
+
+# Tile 1
+# Initialize an empty data frame
+tile_1_bez <- data.frame()
+
+# Initialize the counter
+count <- 0
+
+for(i in a_alt){
+  # Increase the counter by one
+  count <- count + 1
+  # Bind a rotated tile to the existing data frame
+  tile_1_bez <- rbind(tile_1_bez,
+                  data.frame(rotation_bezier(a = i, 
+                                             # Coordinates of tile
+                                             x = 1, 
+                                             y = 1,
+                                             type = tile_type_bezier[1],
+                                             b1 = count*0.0013,
+                                             b2 = count*0.0013,
+                                             b3 = count*0.0013,
+                                             b4 = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 1
+tile_1_bez <- tile_1_bez %>%
+  mutate(tile = "1") %>%
+  st_sf()
+
+# Tile 2
+tile_2_bez <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_2_bez <- rbind(tile_2_bez,
+                  data.frame(rotation_bezier(a = i, 
+                                             # Coordinates of tile
+                                             x = 2, 
+                                             y = 2, 
+                                             type = tile_type_bezier[2],
+                                             b1 = count*0.0013,
+                                             b2 = count*0.0013,
+                                             b3 = count*0.0013,
+                                             b4 = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 2
+tile_2_bez <- tile_2_bez %>%
+  mutate(tile = "2") %>%
+  st_sf()
+
+plot(tile_2_bez)
+
+# Tile 3
+tile_3_bez <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_3_bez <- rbind(tile_3_bez,
+                  data.frame(rotation_bezier(a = i, 
+                                             # Coordinates of tile
+                                             x = 1, 
+                                             y = 2, 
+                                             type = tile_type_bezier[3],
+                                             b1 = count*0.0013,
+                                             b2 = count*0.0013,
+                                             b3 = count*0.0013,
+                                             b4 = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 3
+tile_3_bez <- tile_3_bez %>%
+  mutate(tile = "3") %>%
+  st_sf()
+
+# Tile 4
+tile_4_bez <- data.frame()
+count <- 0
+
+for(i in a_alt){
+  count <- count + 1
+  tile_4_bez <- rbind(tile_4_bez,
+                  data.frame(rotation_bezier(a = i, 
+                                             # Coordinates of tile
+                                             x = 2, 
+                                             y = 1, 
+                                             type = tile_type_bezier[4],
+                                             b1 = count*0.0013,
+                                             b2 = count*0.0013,
+                                             b3 = count*0.0013,
+                                             b4 = count*0.0013), 
+                             state = count))
+}
+
+# Convert the data frame to simple features and label it as tile 4
+tile_4_bez <- tile_4_bez %>%
+  mutate(tile = "4") %>%
+  st_sf()
+
+mosaic_tile_bezier <- rbind(tile_1_bez,
+                            tile_2_bez,
+                            tile_3_bez,
+                            tile_4_bez)
+
+p <- ggplot() +
+  # Render the static background mosaic
+  # geom_sf(data = background,
+  #         aes(fill = factor(color)),
+  #         color = NA) +
+  # Render the animated tiles: first the tiles of color 1
+  geom_sf(data = mosaic_tile_bezier_coords %>%
+            filter(color == 1),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  # Render the animated tiles: then the tiles of color 2
+  geom_sf(data = mosaic_tile_bezier_coords %>%
+            filter(color == 2),
+          aes(fill = factor(color),
+              # It is important to group by `state` and `tile` otherwise the animation gets wacky
+              group = interaction(state, tile)),
+          color = NA) +
+  geom_spoke(data = mosaic_tile_bezier_coords %>% filter(color == 2), aes(x=X, y=Y, angle = color), radius = 0.5) +
+  geom_spoke(data = mosaic_tile_bezier_coords %>% filter(color == 1), aes(x=X, y=Y, angle = 1/color), radius = 0.5) +
+  #geom_point(data = mosaic_tile_bezier_coords, aes(geometry+cos(state), geometry+sin(state)), size=10, colour = 'green') +
+  # Select colors; this is a duotone mosaic
+  scale_fill_manual(values = c("1" = "#FF8000", "2" = "#B6BABD")) + 
+  # "Crop" the mosaic by limiting the extent of the coordinates
+  coord_sf(xlim = c(0.5, 2.5),
+           ylim = c(0.5, 2.5),
+           expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "#FF8000"),
+        panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=1)) 
+
+sf_cent <- st_coordinates(st_centroid(mosaic_tile_bezier))
+
+sf_coords <- st_coordinates(mosaic_tile_bezier$geometry)
+
+plot(sf_coords)
+
+mosaic_tile_bezier_coords <- mosaic_tile_bezier %>% 
+  bind_cols(sf_cent) 
+
+mosaic_tile_bezier_coords_angle <- mosaic_tile_bezier_coords %>% 
+  mutate(angle = case_when(tile == 1 & color == 1 ~ 1,
+                           tile == 1 & color == 2 ~ 2,
+                           tile == 2 & color == 1 ~ 3,
+                           tile == 2 & color == 2 ~ 4,
+                           tile == 3 & color == 1 ~ 5,
+                           tile == 3 & color == 2 ~ 6,
+                           tile == 4 & color == 1 ~ 7,
+                           tile == 4 & color == 2 ~ 8,
+                           TRUE ~ NA))
+
+seq <- seq(0, 360, 182)
+
+seq <- seq(from = 0, to = 360, length.out = 364)
+
+plot_tiles <- p + gganimate::transition_time(state) 
+
+animate(plot_tiles, 
+        fps = 30, 
+        duration = 6.5, 
+        end_pause = 50, 
+        height = 600, width = 600)
+
+anim_save("./04_gifs/animation_four_tiles2.gif")
+
+# tile_test <- matrix(c(0, 0,
+#                       0, 5,
+#                       1, 5,
+#                       1, 0,
+#                       0, 0),
+#                     ncol = 2,
+#                     byrow = TRUE)
+# 
+# plot(tile_test2)
+# 
+# tile_test2 <- matrix(c(0, 0,
+#                        0, 1,
+#                        1, 1,
+#                        1, 0,
+#                        0, 0),
+#                      ncol = 2,
+#                      byrow = TRUE)
+
+#' st_truchet_flex_bezier_thin <- function(x = 0, y = 0, type = "Abez", b1 = 2.5, b2 = 2.5, b3 = 2.5, b4 = 2.5){
+#'   
+#'   #' Flexible Truchet tiles
+#'   #'
+#'   #' @param x A number with the x coordinate of the center of the tile
+#'   #' @param y A number with the y coordinate of the center of the tile
+#'   #' @param type A single character to designate a type of tile; currently supported options are "Ac", "Bc", "Cc", "Dc", "As", "Bs", "Cs", "Ds"
+#'   #' @param b A number between zero and one that controls the shape of the boundary between the two parts of the tile
+#'   #' @return A list with one or more objects of type \code{sf} representing one or more tiles depending on type
+#'   #' @importFrom rlang .data
+#'   #' @export
+#'   #' @examples
+#'   #' st_truchet_flex_bezier(type = "Abez")
+#'   #' @note For a discussion of Truchet patterns see: Robert Bosch & Urchin Colley (2013) Figurative mosaics from flexible Truchet tiles, Journal of Mathematics and the Arts, 7:3-4, 122-135, \url{10.1080/17513472.2013.838830}
+#'   
+#'   # Validate inputs
+#'   checkmate::assertChoice(type, c("Abez", "Bbez", "Cbez", "Dbez"))
+#'   # b1 must be a value beween zero and 1
+#'   checkmate::assert_number(b1, lower = 0, upper = 5)
+#'   # b2 must be a value beween zero and 1
+#'   checkmate::assert_number(b2, lower = 0, upper = 5)
+#'   # b3 must be a value beween zero and 1
+#'   checkmate::assert_number(b3, lower = 0, upper = 5)
+#'   # b4 must be a value beween zero and 1
+#'   checkmate::assert_number(b4, lower = 0, upper = 5)
+#'   
+#'   # Adjust values of b1 in case that there is an exact zero or one, which messes up the selection of colors later on
+#'   if(b1 == 0) b1 <- 1/100
+#'   if(b1 == 1) b1 <- 99/100
+#'   
+#'   # Adjust values of b2 in case that there is an exact zero or one, which messes up the selection of colors later on
+#'   if(b2 == 0) b2 <- 1/100
+#'   if(b2 == 1) b2 <- 99/100
+#'   
+#'   # Adjust values of b3 in case that there is an exact zero or one, which messes up the selection of colors later on
+#'   if(b3 == 0) b3 <- 1/100
+#'   if(b3 == 1) b3 <- 99/100
+#'   
+#'   # Adjust values of b4 in case that there is an exact zero or one, which messes up the selection of colors later on
+#'   if(b4 == 0) b4 <- 1/100
+#'   if(b4 == 1) b4 <- 99/100
+#'   
+#'   ## CREATE BASE TILE
+#'   #  Define square polygon
+#'   tile <- matrix(c(0, 0,
+#'                    0, 5,
+#'                    1, 5,
+#'                    1, 0,
+#'                    0, 0),
+#'                  ncol = 2,
+#'                  byrow = TRUE)
+#'   
+#'   # Convert coordinates to polygons and then to simple features
+#'   tile <- data.frame(geometry = sf::st_polygon(list(tile)) %>%
+#'                        sf::st_sfc()) %>%
+#'     sf::st_as_sf()
+#'   
+#'   ## BASE TILE DONE
+#'   
+#'   # Tile types
+#'   
+#'   switch(type,
+#'          
+#'          "Abez" ={
+#'            ## ADORNMENTS
+#'            # Define bezier control points for line
+#'            
+#'            control_Abez <- tibble(
+#'              x = c(0, b1, 2.5, b3, 5),
+#'              y = c(5, b2, 2.5, b4, 0)
+#'            )
+#'            
+#'            line_1 <- bezier::bezier(t = seq(0, 1, .01),
+#'                                     p = control_Abez)
+#'            
+#'            # Convert points to line
+#'            line_1 <- data.frame(id = 1,
+#'                                 geometry = sf::st_linestring(line_1) %>%
+#'                                   sf::st_geometry()) %>%
+#'              sf::st_sf()
+#'            
+#'            # Split the base tile to give the final tile
+#'            tile <- tile %>%
+#'              lwgeom::st_split(line_1) %>%
+#'              sf::st_collection_extract() %>%
+#'              dplyr::mutate(color = 2:1)
+#'            ## ADORNMENTS DONE
+#'          },
+#'          
+#'          "Bbez" ={
+#'            ## ADORNMENTS
+#'            # Define bezier control points for line
+#'            
+#'            control_Bbez <- tibble(
+#'              x = c(0, b1, 2.5, 5 - b3, 5),
+#'              y = c(5, b2, 2.5, 5 - b4, 0)
+#'            )
+#'            
+#'            # Compute bezier curve
+#'            line_1 <- bezier::bezier(t = seq(0, 1, .01),
+#'                                     p = control_Bbez)
+#'            
+#'            # Convert points to line
+#'            line_1 <- data.frame(id = 1,
+#'                                 geometry = sf::st_linestring(line_1) %>%
+#'                                   sf::st_geometry()) %>%
+#'              sf::st_sf()
+#'            
+#'            # Split the base tile to give the final tile
+#'            tile <- tile %>%
+#'              lwgeom::st_split(line_1) %>%
+#'              sf::st_collection_extract() %>%
+#'              dplyr::mutate(color = 2:1)
+#'            ## ADORNMENTS DONE
+#'          },
+#'          
+#'          "Cbez" ={
+#'            ## ADORNMENTS
+#'            # Define bezier control points for line
+#'            
+#'            control_Cbez <- tibble(
+#'              x = c(0, b1, 2.5, b3, 5),
+#'              y = c(5, b2, 2.5, b4, 0)
+#'            )
+#'            
+#'            # Compute bezier curve
+#'            line_1 <- bezier::bezier(t = seq(0, 1, .01),
+#'                                     p = control_Cbez)
+#'            
+#'            # Convert points to line
+#'            line_1 <- data.frame(id = 1,
+#'                                 geometry = sf::st_linestring(line_1) %>%
+#'                                   sf::st_geometry()) %>%
+#'              sf::st_sf()
+#'            
+#'            # Split the base tile to give the final tile
+#'            tile <- tile %>%
+#'              lwgeom::st_split(line_1) %>%
+#'              sf::st_collection_extract() %>%
+#'              dplyr::mutate(color = 1:2)
+#'            ## ADORNMENTS DONE
+#'          },
+#'          
+#'          "Dbez" ={
+#'            ## ADORNMENTS
+#'            # Define bezier control points for line
+#'            
+#'            control_Dbez <- tibble(
+#'              x = c(0, b1, 2.5, 5 - b3, 5),
+#'              y = c(5, b2, 2.5, 5 - b4, 0)
+#'            )
+#'            
+#'            # Compute bezier curve
+#'            line_1 <- bezier::bezier(t = seq(0, 1, .01),
+#'                                     p = control_Dbez)
+#'            
+#'            # Convert points to line
+#'            line_1 <- data.frame(id = 1,
+#'                                 geometry = sf::st_linestring(line_1) %>%
+#'                                   sf::st_geometry()) %>%
+#'              sf::st_sf()
+#'            
+#'            # Split the base tile to give the final tile
+#'            tile <- tile %>%
+#'              lwgeom::st_split(line_1) %>%
+#'              sf::st_collection_extract() %>%
+#'              dplyr::mutate(color = 1:2)
+#'            ## ADORNMENTS DONE
+#'          }
+#'   )
+#'   
+#'   # Translate so that the tiles are centered on the point (0, 0)
+#'   tile <- tile %>%
+#'     dplyr::mutate(geometry = sf::st_geometry(tile) + c(-2.5, - 2.5))
+#'   
+#'   ## FINISH TILES
+#'   # position at point (x, y)
+#'   tile <- tile %>%
+#'     dplyr::mutate(geometry = sf::st_geometry(tile) + c(x, y))
+#'   
+#'   ## TILES DONE
+#'   
+#'   return(tile)
+#' }
+#' 
+#' # Tile 1
+#' # Initialize an empty data frame
+#' tile_1_bez_thin <- data.frame()
+#' 
+#' # Initialize the counter
+#' count <- 0
+#' 
+#' for(i in a_alt){
+#'   # Increase the counter by one
+#'   count <- count + 1
+#'   # Bind a rotated tile to the existing data frame
+#'   tile_1_bez_thin <- rbind(tile_1_bez_thin,
+#'                            data.frame(rotation_bezier_thin(a = i, 
+#'                                                  # Coordinates of tile
+#'                                                  x = 0.5, 
+#'                                                  y = 2.5,
+#'                                                  type = tile_type_bezier[1],
+#'                                                  b1 = count*0.0013,
+#'                                                  b2 = count*0.0013,
+#'                                                  b3 = count*0.0013,
+#'                                                  b4 = count*0.0013), 
+#'                                  state = count))
+#' }
+#' 
+#' # Convert the data frame to simple features and label it as tile 1
+#' tile_1_bez_thin <- tile_1_bez_thin %>%
+#'   mutate(tile = "1") %>%
+#'   st_sf()
+#' 
+#' # Tile 2
+#' tile_2_bez_thin <- data.frame()
+#' count <- 0
+#' 
+#' for(i in a_alt){
+#'   count <- count + 1
+#'   tile_2_bez_thin <- rbind(tile_2_bez_thin,
+#'                            data.frame(rotation_bezier_thin(a = i, 
+#'                                                  # Coordinates of tile
+#'                                                  x = 0.5, 
+#'                                                  y = 7.5, 
+#'                                                  type = tile_type_bezier[2],
+#'                                                  b1 = count*0.0013,
+#'                                                  b2 = count*0.0013,
+#'                                                  b3 = count*0.0013,
+#'                                                  b4 = count*0.0013), 
+#'                                  state = count))
+#' }
+#' 
+#' # Convert the data frame to simple features and label it as tile 2
+#' tile_2_bez_thin <- tile_2_bez_thin %>%
+#'   mutate(tile = "2") %>%
+#'   st_sf()
+#' 
+#' #plot(tile_2_bez)
+#' 
+#' # Tile 3
+#' tile_3_bez_thin <- data.frame()
+#' count <- 0
+#' 
+#' for(i in a_alt){
+#'   count <- count + 1
+#'   tile_3_bez_thin <- rbind(tile_3_bez_thin,
+#'                       data.frame(rotation_bezier_thin(a = i, 
+#'                                                  # Coordinates of tile
+#'                                                  x = 1, 
+#'                                                  y = 7.5, 
+#'                                                  type = tile_type_bezier[3],
+#'                                                  b1 = count*0.0013,
+#'                                                  b2 = count*0.0013,
+#'                                                  b3 = count*0.0013,
+#'                                                  b4 = count*0.0013), 
+#'                                  state = count))
+#' }
+#' 
+#' # Convert the data frame to simple features and label it as tile 3
+#' tile_3_bez_thin <- tile_3_bez_thin %>%
+#'   mutate(tile = "3") %>%
+#'   st_sf()
+#' 
+#' # Tile 4
+#' tile_4_bez_thin <- data.frame()
+#' count <- 0
+#' 
+#' for(i in a_alt){
+#'   count <- count + 1
+#'   tile_4_bez_thin <- rbind(tile_4_bez_thin,
+#'                       data.frame(rotation_bezier_thin(a = i, 
+#'                                                  # Coordinates of tile
+#'                                                  x = 1, 
+#'                                                  y = 2.5, 
+#'                                                  type = tile_type_bezier[4],
+#'                                                  b1 = count*0.0013,
+#'                                                  b2 = count*0.0013,
+#'                                                  b3 = count*0.0013,
+#'                                                  b4 = count*0.0013), 
+#'                                  state = count))
+#' }
+#' 
+#' # Convert the data frame to simple features and label it as tile 4
+#' tile_4_bez_thin <- tile_4_bez_thin %>%
+#'   mutate(tile = "4") %>%
+#'   st_sf()
+#' 
+#' mosaic_tile_bezier_thin <- rbind(tile_1_bez_thin,
+#'                                  tile_2_bez_thin,
+#'                                  tile_3_bez_thin,
+#'                                  tile_4_bez_thin)
+#' 
+#' p <- ggplot() +
+#'   # Render the static background mosaic
+#'   # geom_sf(data = background,
+#'   #         aes(fill = factor(color)),
+#'   #         color = NA) +
+#'   # Render the animated tiles: first the tiles of color 1
+#'   geom_sf(data = mosaic_tile_bezier_thin %>%
+#'             filter(color == 1),
+#'           aes(fill = factor(color),
+#'               # It is important to group by `state` and `tile` otherwise the animation gets wacky
+#'               group = interaction(state, tile)),
+#'           color = NA) +
+#'   # Render the animated tiles: then the tiles of color 2
+#'   geom_sf(data = mosaic_tile_bezier_thin %>%
+#'             filter(color == 2),
+#'           aes(fill = factor(color),
+#'               # It is important to group by `state` and `tile` otherwise the animation gets wacky
+#'               group = interaction(state, tile)),
+#'           color = NA) +
+#'   # Select colors; this is a duotone mosaic
+#'   scale_fill_manual(values = c("1" = "#FF8000", "2" = "#B6BABD")) + 
+#'   # "Crop" the mosaic by limiting the extent of the coordinates
+#'   coord_sf(xlim = c(0.5, 2.5),
+#'            ylim = c(0.5, 12.5),
+#'            expand = FALSE) +
+#'   theme_void() +
+#'   theme(legend.position = "none",
+#'         plot.background = element_rect(fill = "#FF8000"),
+#'         panel.border = element_rect(colour = "#73AEA4", fill=NA, linewidth=1)) 
+#' 
+#' plot_tiles_thin <- p + gganimate::transition_time(state) 
+#' 
+#' animate(plot_tiles_thin, 
+#'         fps = 30, 
+#'         duration = 6.5, 
+#'         end_pause = 50, 
+#'         height = 600, width = 600)
+#' 
+#' anim_save("./04_gifs/animation_four_tiles3.gif")
+
+# 6 Wave Patterns----
+# *6.1 1st pattern----
+# 3rd pattern - use this - wave pattern
+# n_points is the number of points for the mclaren logo
+
+wave_points_tile1_colour1 <- mosaic_tile_bezier_coords_angle %>% 
+  filter(color %in% 1 & tile %in% 1) %>% 
+  slice(which(row_number() %% 10 == 1))
+
+n_points_w1_t1 <- nrow(wave_points_tile1_colour1)
+closeness_w1_t1 <- 2*pi/n_points_w1_t1
+speed_w1_t1 <- 2*pi/n_points_w1_t1
+v_angles_w1_t1 <- seq(0, 0, length.out = n_points_w1_t1)
+
+n_points  <- 32
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 0, length.out = n_points)
+
+# This function creates a grid of vectors (coordinates and angle)
+# using a initial vector of angles adding factor f each iteration
+create_grid <- function(n, a, f) {
+  lapply(seq_len(n), function (x) {a+f*(x-1)}) %>% 
+    do.call("rbind", .) %>% 
+    melt(varnames=c('x', 'y'), value.name="angle")
+}
+
+# This is what makes to spin the pins - inspect the structure of the output -> df 
+lapply(1:(n_points+1), function(x) {
+  create_grid(n_points, 
+              v_angles+(x-1)*speed,
+              closeness)}) %>% 
+  as.list(.) %>% 
+  rbindlist(idcol="frame") -> df
+
+lapply(1:(n_points_w1_t1+1), function(x) {
+  create_grid(n_points_w1_t1, 
+              v_angles_w1_t1+(x-1)*speed_w1_t1,
+              closeness_w1_t1)}) %>% 
+  as.list(.) %>% 
+  rbindlist(idcol="frame") -> df_w1_t1
+
+df_w1_t1 <- df_w1_t1 %>%
+  group_by(frame) %>% 
+  mutate(size = runif(1369, 0.5, 6.5),
+         # colour = case_when(size >= 0.5 & size <= 1 ~ '#C9EFFE', 
+         #                    size > 1 & size <= 2 ~  '#0F3A57',
+         #                    size > 2 & size <= 3 ~  '#C9EFFE',
+         #                    size > 2 & size <= 3 ~  '#0F3A57',
+         #                    size > 3 & size <= 4 ~  '#C9EFFE',
+         #                    TRUE ~ '#0F3A57'), 
+         fill = case_when(size >= 0.5 & size <= 1 ~ '#0F3A57', 
+                          size > 1 & size <= 2 ~  '#2D4FA1',
+                          size > 2 & size <= 3 ~  '#27C6B1',
+                          size > 2 & size <= 3 ~  '#A8CDF1',
+                          size > 3 & size <= 4 ~  '#59819F',
+                          TRUE ~ '#C9EFFE'),
+         alpha = runif(1369, 0.7, 0.95)) %>%
+  #mutate(size = seq(0.5, 10, length.out = 1369)) %>% 
+  ungroup()
+
+df <- df %>%
+  group_by(frame) %>% 
+  mutate(size = runif(1024, 0.5, 6.5),
+         # colour = case_when(size >= 0.5 & size <= 1 ~ '#C9EFFE', 
+         #                    size > 1 & size <= 2 ~  '#0F3A57',
+         #                    size > 2 & size <= 3 ~  '#C9EFFE',
+         #                    size > 2 & size <= 3 ~  '#0F3A57',
+         #                    size > 3 & size <= 4 ~  '#C9EFFE',
+         #                    TRUE ~ '#0F3A57'), 
+         fill = case_when(size >= 0.5 & size <= 1 ~ '#0F3A57', 
+                          size > 1 & size <= 2 ~  '#2D4FA1',
+                          size > 2 & size <= 3 ~  '#27C6B1',
+                          size > 2 & size <= 3 ~  '#A8CDF1',
+                          size > 3 & size <= 4 ~  '#59819F',
+                          TRUE ~ '#C9EFFE'),
+         alpha = runif(1024, 0.7, 0.95)) %>%
+  #mutate(size = seq(0.5, 10, length.out = 1369)) %>% 
+  ungroup()
+
+# colours_scotland
+blues <- c('#0F3A57','#2D4FA1','#27C6B1', '#A8CDF1', '#59819F', '#C9EFFE')
+
+# df_w1_t1 <- df_w1_t1 %>% 
+#   slice(1:8400)
+
+# for checking original spinning pins animation
+# Plot pins using frame as transition time
+wave <- ggplot(df) +
+  geom_spoke(aes(x=x, y=y, angle = angle), radius = 1, colour = '#C9EFFE') +
+  geom_point(aes(x+cos(angle), y+sin(angle)), 
+             shape = 23,
+             # colour = df_w1_t1$colour,
+             size = df$size, 
+             fill = df$fill,
+             alpha = df$alpha) +
+  # geom_point(aes(x+cos(angle), y+sin(angle)), 
+  #            shape = 21, 
+  #            size = 2, 
+  #            fill = 'white',
+  #            alpha = df_w1_t1$alpha) +
+  #scale_fill_manual(values="cyan4") +
+  #geom_tile(aes(x=x, y=y)) +
+  theme_void() +
+  theme(panel.background = element_rect(fill = '#C9EFFE', colour = '#C9EFFE')) +
+  coord_fixed() +
+  transition_time(time=frame)
+
+# animate
+animate(wave, fps=10, height = 600, width = 600)
+
+# animation save
+#anim_save("./04_gifs/mclaren_pins_animate_lando_max.gif", height = 372, width = 538, units = "px")
+anim_save("./04_gifs/wave2.gif")
+
+anim_save("./04_gifs/animation_four_tiles2.gif")
+
+# x variable from the square pattern
+df_x <- df_w1_t1 %>% 
+  select(x) %>% 
+  rename(original_x = x)
+
+# x variable from the rescaled McLaren logo coordinates
+new_df_x <- wave_points_tile1_colour1 %>%
+  #slice(1:10) %>%  
+  select(X) %>% 
+  rename(new_x = X) 
+
+#slice(1:52022)
+
+# https://stackoverflow.com/questions/66434941/make-a-column-based-a-repetitive-numbers-that-follows-another-column
+# transpose new McLaren x-cordinates to same length as square pattern
+df_x_rep <- df_x %>%
+  mutate(new_col = rep(list(new_df_x), n())) %>% 
+  unnest(new_col) %>% 
+  slice(1:52022)
+
+# y variable
+# y variable from the square pattern
+df_y <- df_w1_t1 %>% 
+  select(y) %>% 
+  rename(original_y = y)
+
+# different structure for y - stepwise, single coordinates repeated n times
+# https://stackoverflow.com/questions/2894775/repeat-each-row-of-data-frame-the-number-of-times-specified-in-a-column
+new_df_y <- wave_points_tile1_colour1 %>%
+  select(Y) %>% 
+  #slice(1:83) %>% 
+  mutate(freq = 37) %>% 
+  slice(rep(seq_len(n()), freq)) %>% 
+  select(-freq)
+
+# then repeat previous step n times
+df_y_rep <- purrr::map_dfr(seq_len(38), ~new_df_y)
+
+# bind new x and y's
+new_xy <- df_x_rep %>% 
+  bind_cols(df_y_rep) %>% 
+  select(new_x, Y) %>% 
+  rename(x = new_x,
+         y = Y)
+
+# reclaim frame and angle variables from original square pattern
+df_frame_angle <- df_w1_t1 %>% 
+  select(frame, angle)
+
+# bind frame, angle variables to new x,y variables
+# add row numbers in case needed later
+df_w1_t1_frame_angle <- new_xy %>% 
+  bind_cols(df_frame_angle) %>% 
+  select(frame, x, y, angle) %>% 
+  mutate(row = row_number())
 
