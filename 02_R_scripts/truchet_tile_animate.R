@@ -6382,7 +6382,7 @@ anim_save("./04_gifs/animation_four_tiles2.gif")
 #' anim_save("./04_gifs/animation_four_tiles3.gif")
 
 # 6 Wave Patterns----
-# *6.1 1st pattern----
+# *6.1 3rd pattern----
 # 3rd pattern - use this - wave pattern
 # n_points is the number of points for the mclaren logo
 
@@ -6554,3 +6554,352 @@ df_w1_t1_frame_angle <- new_xy %>%
   select(frame, x, y, angle) %>% 
   mutate(row = row_number())
 
+# *6.2 1st pattern----
+# 1st pattern
+n_points  <- 20
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 2*pi, length.out = n_points)
+
+# This function creates a grid of vectors (coordinates and angle)
+# using a initial vector of angles adding factor f each iteration
+create_grid <- function(n, a, f) {
+  lapply(seq_len(n), function (x) {a+f*(x-1)}) %>% 
+    do.call("rbind", .) %>% 
+    melt(varnames=c('x', 'y'), value.name="angle")
+}
+
+# This is what makes to spin the pins 
+lapply(1:(n_points+1), function(x) {
+  create_grid(n_points, 
+              v_angles+(x-1)*speed,
+              closeness)}) %>% 
+  as.list(.) %>% 
+  rbindlist(idcol="frame") -> df1
+
+df_bind <- df %>% 
+  bind_rows(df1)
+
+df <- df1 %>%
+  group_by(frame) %>% 
+  mutate(size = runif(400, 0.5, 15),
+         # colour = case_when(size >= 0.5 & size <= 1 ~ '#C9EFFE', 
+         #                    size > 1 & size <= 2 ~  '#0F3A57',
+         #                    size > 2 & size <= 3 ~  '#C9EFFE',
+         #                    size > 2 & size <= 3 ~  '#0F3A57',
+         #                    size > 3 & size <= 4 ~  '#C9EFFE',
+         #                    TRUE ~ '#0F3A57'), 
+         fill = case_when(size >= 0.5 & size <= 1 ~ '#0F3A57', 
+                          size > 1 & size <= 2 ~  '#2D4FA1',
+                          size > 2 & size <= 3 ~  '#27C6B1',
+                          size > 2 & size <= 3 ~  '#A8CDF1',
+                          size > 3 & size <= 4 ~  '#59819F',
+                          TRUE ~ '#C9EFFE'),
+         alpha = runif(400, 0.8, 0.95)) %>%
+  #mutate(size = seq(0.5, 10, length.out = 1369)) %>% 
+  ungroup() %>%
+  mutate(point_colour = case_when(frame %in% 1 ~ '#0F3A57', 
+                                  frame > 1 & frame <= 4 ~  '#2D4FA1',
+                                  angle > 4 & frame <= 8 ~  '#27C6B1',
+                                  frame > 8 & frame <= 12 ~  '#A8CDF1',
+                                  frame > 12 & frame <= 16 ~  '#59819F',
+                                  TRUE ~ '#C9EFFE'))
+
+# Plot pins using frame as transition time
+# Plot pins using frame as transition time
+wave2 <- ggplot(df) +
+  geom_spoke(aes(x=x, y=y, angle = angle), radius = 2, colour = '#27C6B1', size = 0.75) +
+  # geom_point(aes(x+cos(angle), y+sin(angle)),
+  #            shape = 21,
+  #            # colour = df_w1_t1$colour,
+  #            size = 5,
+  #            fill = df$point_colour,
+  #            alpha = df$alpha) +
+  # geom_point(aes(x+cos(angle), y+sin(angle)), 
+  #            shape = 21, 
+  #            size = 2, 
+  #            fill = 'white',
+  #            alpha = df_w1_t1$alpha) +
+  #scale_fill_manual(values="cyan4") +
+  #geom_tile(aes(x=x, y=y)) +
+  theme_void() +
+  theme(panel.background = element_rect(fill = '#59819F', colour = '#59819F')) +
+  coord_fixed() +
+  transition_time(time=frame)
+
+# animate
+animate(wave2, fps=10, height = 600, width = 600)
+
+# animation save
+#anim_save("./04_gifs/mclaren_pins_animate_lando_max.gif", height = 372, width = 538, units = "px")
+anim_save("./04_gifs/wave7.gif")
+
+# 7 OP81 logo----
+# *7.1 as a wave----
+# whole image
+OP81 <- image_read('./00_raw_data/OSCPIA01.png')
+
+info <- image_info(OP81_png)
+
+OP81_png <- image_convert(OP81, 'png')
+
+OP81_png_trim <- image_trim(OP81_png)
+
+print(info)
+
+image_write(OP81_png_trim, path = './00_raw_data/OP81_trim.png', format = "png")
+
+# cropped image no.1
+OP81_png_crop <- image_crop(OP81_png, geometry = "100x225+265")
+
+OP81_png_crop_trim <- image_trim(OP81_png_crop) 
+
+image_write(OP81_png_crop_trim, path = './00_raw_data/no1_of_OP81_trim.png', format = "png")
+
+# cropped image no.8
+OP81_png_crop2 <- image_crop(OP81_png, geometry = "262x225+0")
+
+OP81_png_crop2_trim <- image_trim(OP81_png_crop2) 
+
+image_write(OP81_png_crop2_trim, path = './00_raw_data/no8_of_OP81_trim.png', format = "png")
+
+# cropped image no.8 to 'O'
+info <- image_info(OP81_png_crop2)
+
+print(info)
+
+# OP81_png_crop3 <- image_crop(OP81_png_crop2, geometry = "262x43+0+90")
+# 
+# OP81_png_crop3 <- image_crop(OP81_png_crop2, geometry = "157x43+56+90")
+# 
+# OP81_png_crop3_orange <- image_fill(OP81_png_crop3, 'orange')
+# 
+# image_write(OP81_png_crop3_orange, path = './00_raw_data/centre_bar_of_no8_2_orange.png', format = "png")
+# 
+# OP81_png_crop3_trim <- image_trim(OP81_png_crop3)
+
+# pixlr 'O'
+O_pixlr <- image_read('./00_raw_data/OSCPIA01_O_pixlr.png')
+
+O_pixlr_trim <- image_trim(O_pixlr)
+
+image_write(O_pixlr_trim, path = './00_raw_data/OSCPIA01_O_pixlr_trim.png', format = "png")
+
+O_final <- image_read('./00_raw_data/OSCPIA01_O_pixlr.png') %>% 
+  image_trim() %>%
+  image_write(path = './00_raw_data/OSCPIA01_O_pixlr_trim.png', format = "png")
+
+# pixlr 'P'
+P_pixlr <- image_read('./00_raw_data/OSCPIA01_P_pixlr.png')
+
+P_pixlr_trim <- image_trim(P_pixlr)
+
+image_write(P_pixlr_trim, path = './00_raw_data/OSCPIA01_P_pixlr_trim.png', format = "png")
+
+P_final <- image_read('./00_raw_data/OSCPIA01_P_pixlr.png') %>% 
+  image_trim() %>%
+  image_write(path = './00_raw_data/OSCPIA01_P_pixlr_trim.png', format = "png")
+
+# pixlr bar
+bar_pixlr <- image_read('./00_raw_data/OSCPIA01_pixlr_bar.png')
+
+bar_pixlr_trim <- image_trim(bar_pixlr)
+
+image_write(bar_pixlr_trim, path = './00_raw_data/OSCPIA01_pixlr_bar_trim.png', format = "png")
+
+bar_final <- image_read('./00_raw_data/OSCPIA01_pixlr_bar.png') %>% 
+  image_trim() %>%
+  image_write(path = './00_raw_data/OSCPIA01_pixlr_bar_trim.png', format = "png")
+
+# cropped image no.1
+# OP81_png_crop <- image_crop(OP81_png, geometry = "100x225+265")
+# 
+# OP81_png_crop_trim <- image_trim(OP81_png_crop) 
+# 
+# image_write(OP81_png_crop_trim, path = './00_raw_data/no1_of_OP81_trim.png', format = "png")
+# 
+# no1_final <- image_crop(OP81_png, geometry = "100x225+265") %>% 
+#   image_trim() %>%
+#   image_write(path = './00_raw_data/no1_of_OP81_trim.png', format = "png")
+
+# pixlr no.1
+
+no1_pixlr <- image_read('./00_raw_data/OSCPIA01_no1_trim.png')
+
+info <- image_info(no1_pixlr)
+
+print(info)
+
+image_write(no1_pixlr, path = './00_raw_data/OSCPIA01_no1_trim_rescale.png', format = "png")
+
+no1_final <- image_read('./00_raw_data/OSCPIA01_no1_trim.png') %>% 
+  image_write(path = './00_raw_data/OSCPIA01_no1_trim.png', format = "png")
+
+# # cropped image no.8
+# OP81_png_crop2 <- image_crop(OP81_png, geometry = "262x225+0")
+# 
+# OP81_png_crop2_trim <- image_trim(OP81_png_crop2) 
+# 
+# image_write(OP81_png_crop2_trim, path = './00_raw_data/no8_of_OP81_trim.png', format = "png")
+# 
+# no8_final <- image_crop(OP81_png, geometry = "262x225+0") %>% 
+#   image_trim() %>%
+#   image_write(path = './00_raw_data/no8_of_OP81_trim.png', format = "png")
+
+# pixlr no.8
+
+no8_pixlr <- image_read('./00_raw_data/OSCPIA01_pixlr_no8.png')
+
+no8_trim <- image_trim(no8_pixlr)
+
+info <- image_info(no8_trim)
+
+print(info)
+
+image_write(no8_trim, path = './00_raw_data/OSCPIA01_no8_trim.png', format = "png")
+
+no8_final <- image_read('./00_raw_data/OSCPIA01_pixlr_no8.png') %>% 
+  image_trim() %>%
+  image_write(path = './00_raw_data/OSCPIA01_no8_trim.png', format = "png")
+
+
+# *7.2 rotation pattern - 2nd pattern----
+# n_points is the number of points for the mclaren logo
+n_points  <- 8
+closeness <- 6
+speed     <- 2*pi/n_points
+v_angles <- seq(0, by=pi*2, length.out = n_points)
+
+n_points  <- 6
+closeness <- 0
+speed     <- 2*pi/n_points
+v_angles <- seq(0, by=pi/2, length.out = n_points)
+
+# n_points  <- 4
+# closeness <- 1
+# speed     <- 8/n_points
+# v_angles <- seq(0, by=45, length.out = n_points)
+
+# 4th pattern
+n_points  <- 6
+closeness <- pi/4
+speed     <- 2*pi/n_points
+v_angles <- seq(0, by=pi/4, length.out = n_points)
+
+# 3rd pattern
+n_points  <- 6
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 0, length.out = n_points)
+
+# 1st pattern
+n_points  <- 6
+closeness <- 2*pi/n_points
+speed     <- 2*pi/n_points
+v_angles <- seq(0, 2*pi, length.out = n_points)
+
+# This is what makes to spin the pins - inspect the structure of the output -> df 
+lapply(1:(n_points+1), function(x) {
+  create_grid(n_points, 
+              v_angles+(x-1)*speed,
+              closeness)}) %>% 
+  as.list(.) %>% 
+  rbindlist(idcol="frame") -> df
+
+# df <- df %>% 
+#   mutate(label = case_when(x %% 2 == 0 ~ P_final,
+#                            x %% 3 == 0 ~ bar_final,
+#                            TRUE ~ O_final))
+# df <- df %>% 
+#   mutate (label = rep(c(O_final,
+#                         P_final,
+#                         no8_final,
+#                         no1_final,
+#                         O_final,
+#                         P_final,
+#                         no8_final,
+#                         no1_final), 
+#                       42, 
+#                       length.out = n()))
+
+df <- df %>% 
+  mutate (label = rep(c(bar_final,
+                        O_final,
+                        P_final,
+                        no8_final,
+                        no1_final,
+                        bar_final), 
+                      42, 
+                      length.out = n()))
+
+
+OP_animate <- df %>% 
+  ggplot() +
+  #geom_spoke(aes(x=x, y=y, angle = angle), radius = 1, colour = '#FF8000') +
+  geom_image(aes(x+cos(angle), y+sin(angle), image = label), size = 0.07, by = 'height') +
+  #scale_size_identity() +
+  #geom_point(aes(x+cos(angle), y+sin(angle)), size=3, colour = '#FF8000') +
+  #geom_text(aes(x+cos(angle), y+sin(angle), label = label), family = 'fontawesome-webfont') +
+  theme_void() +
+  #darklyplot::theme_dark2() +
+  theme(legend.position = "none",
+        plot.margin = unit(c(5, 5, 5, 5), "pt"),
+        panel.grid = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        plot.caption = element_text(size = 14, family = "alfa",hjust = 0.5, colour = '#FF87BC')) +
+  coord_fixed() +
+  theme(panel.background = element_rect(fill = '#59819F', colour = '#59819F')) +
+  transition_time(time=frame) +
+  #shadow_wake(0.15) +
+  labs(caption = "design by hey-jay")
+
+# animate
+animate(OP_animate, fps=10, height = 600, width = 600)
+
+# animation save
+anim_save("./04_gifs/OP_wave_no2.gif")
+
+# *7.3 as a race progression----
+
+OP81_as_a_race <- read.csv('./00_raw_data/op81_animate_as_race.csv') %>% 
+  pivot_longer(cols = 'oh':'one', names_to = 'icons', values_to = 'points') %>% 
+  mutate(file_path = case_when(icons %in% 'oh' ~ O_final,
+                               icons %in% 'pee' ~ P_final,
+                               icons %in% 'eight' ~ no8_final,
+                               TRUE ~ no1_final)) %>% 
+  mutate(Race_id = case_when(icons %in% 'one' ~ 2, TRUE ~ 1))
+
+OP81_as_a_race_alt <- read.csv('./00_raw_data/op81_animate_as_race_alt1.csv') %>% 
+  pivot_longer(cols = 'oh':'one', names_to = 'icons', values_to = 'points') %>% 
+  mutate(file_path = case_when(icons %in% 'oh' ~ O_final,
+                               icons %in% 'pee' ~ P_final,
+                               icons %in% 'eight' ~ no8_final,
+                               TRUE ~ no1_final)) 
+
+OP81_as_a_race_plot <- OP81_as_a_race_alt %>%
+  ggplot(aes(x = factor(Race_id), y = points, colour = icons, group = icons)) + 
+  geom_image(aes(image = file_path), size = 0.07, by = 'height') +
+  #geom_point(shape=21, aes(group = seq_along(Race_id))) +
+  #scale_colour_manual(values = drivers_2024$secondary_colour) +
+  #coord_cartesian(xlim = c(-1, 1), ylim = c(0, 5), expand = F, clip = 'off') +
+  transition_states(points, transition_length = 2, state_length = 1) +
+  #transition_states(points) +
+  enter_fade() +
+  exit_shrink() +
+  ease_aes('sine-in-out')
+  #ease_aes('linear')
+
+animate(OP81_as_a_race_plot, nframes = 300, end_pause = 100, height = 800, width = 555)
+
+OP81_as_a_race_plot 
+
+# animation save
+anim_save("./04_gifs/OP_reveal.gif")
+mtcars
+OP81_as_a_race
