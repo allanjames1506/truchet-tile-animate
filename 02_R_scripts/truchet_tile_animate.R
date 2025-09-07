@@ -3636,15 +3636,20 @@ pmap_dfr(list(x_c, y_c, type, b), st_truchet_flex) %>%
 # https://automobilist.com/en-gb/blogs/stories/the-true-visionary-bruce-mclaren?srsltid=AfmBOoo5uQWDk9GYn4IIQoyxnzSKiDm-GoBo_9aITBYIe7DaCFeVRCdU
 
 bruce <- image_read('./00_raw_data/BruceMcLaren.jpeg.webp')
+monza25 <- image_read('./00_raw_data/monza2025.jpeg')
 
 info <- image_info(bruce) 
+info <- image_info(monza25)
 
 print(info)
 
 # whole image
 bruce_crop <- image_crop(bruce, geometry = "1000x400+50+125")
 
+monza25_crop <- image_crop(monza25, geometry = "268x150+0+0") 
+
 image_write(bruce_crop, path = './00_raw_data/BruceMcLaren_cropped.jpeg', format = "jpeg")
+image_write(monza25_crop, path = './00_raw_data/monza25_cropped.jpeg', format = "jpeg")
 
 # chequered flag man
 bruce_crop1 <- image_crop(bruce, geometry = "450x350+75+130")
@@ -3669,8 +3674,13 @@ bruce_cropped2 <- './00_raw_data/BruceMcLaren_cropped2.jpeg'
 
 bruce_cropped3 <- './00_raw_data/BruceMcLaren_cropped3.jpeg'
 
+monza25_cropped <- './00_raw_data/monza25_cropped.jpeg'
+
 # Load and convert to grayscale
 load.image(bruce_cropped) %>%
+  grayscale() -> img
+
+load.image(monza25_cropped) %>%
   grayscale() -> img
 
 plot(img)
@@ -3680,9 +3690,18 @@ bruce_rs <- imager::imresize(img,
                              scale = 1/8, 
                              interpolation = 6)
 
-plot(bruce_rs)
+# monza25_input 1/8
+monza_rs <- imager::imresize(img, 
+                             scale = 1/2.5, 
+                             interpolation = 2)
+
+plot(monza_rs)
 
 bruce_df <- bruce_rs %>%
+  as.data.frame() %>%
+  mutate(y = y - max(y))
+
+monza_df <- monza_rs %>%
   as.data.frame() %>%
   mutate(y = y - max(y))
 
@@ -3692,6 +3711,15 @@ df_bruce <- bruce_df %>%
          # The modulus of x + y can be used to create a checkerboard pattern
          tiles = case_when((x + y) %% 2 == 0 ~ "Ac",
                            (x + y) %% 2 == 1 ~ "Dc"),
+         b = case_when((x + y) %% 2 == 0 ~ 1 - value,
+                       (x + y) %% 2 == 1 ~ value))
+
+df_monza <- monza_df %>% 
+  # Reverse the y axis
+  mutate(y = -(y - max(y)),
+         # The modulus of x + y can be used to create a checkerboard pattern
+         tiles = case_when((x + y) %% 2 == 0 ~ "Bc",
+                           (x + y) %% 2 == 1 ~ "Cc"),
          b = case_when((x + y) %% 2 == 0 ~ 1 - value,
                        (x + y) %% 2 == 1 ~ value))
 
@@ -3706,6 +3734,9 @@ start_time <- Sys.time()
 mosaic_bruce <- st_truchet_fm(df = df_bruce %>% 
                                 mutate(b = b * 0.99 + 0.001))
 
+mosaic_monza <- st_truchet_fm(df = df_monza %>% 
+                                mutate(b = b * 0.99 + 0.001))
+
 # End timer
 end_time <- Sys.time()
 
@@ -3713,6 +3744,8 @@ end_time <- Sys.time()
 end_time - start_time
 
 mosaic_bruce <- mosaic_bruce %>% mutate(id = as.numeric(id))
+
+mosaic_monza <- mosaic_monza %>% mutate(id = as.numeric(id))
 
 #glimpse(mosaic_bruce)
 
@@ -3745,6 +3778,12 @@ dTP1_alt = data.table(x = c(15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 
                       t = 1:21,
                       McL=rep("dtP1", 21),
                       Image = rep(mclaren_logo, 21))
+
+dTP1_alt_monza = data.table(x = c(5.5, 11, 16.5, 22, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 79.5, 84, 88.5, 93, 97.7),
+                      y = c(78.5, 78.5, 78.5, 78.5, 75, 75.25, 75.5, 75.75, 76, 76.25, 76.5, 76.75, 77, 77.25, 77.5, 77.75, 78, 78.25, 78.5, 78.75),
+                      t = 1:20,
+                      McL=rep("dtP1", 20),
+                      Image = rep(mclaren_logo, 20))
 
 # dTP1_alt <- dTP1_alt %>% 
 #   mutate(logo_size = seq(from = 0.05, to = 0.4, len =20))
@@ -3802,6 +3841,68 @@ mosaic_bruce %>%
                                                                    dTP1_alt$t >18 & dTP1_alt$t <= 20 ~ 0.275,
                                                                    TRUE ~ 0.3)) -> plot
 
+cmon <- expression("c'mon")
+summarise(mosaic_monza)
+mosaic_monza %>%
+  ggplot() + 
+  geom_sf(aes(fill = color),
+          color = 'black') +
+  scale_fill_gradient2(low = "white", 
+                       mid = "#FF8000", 
+                       high = "grey20",
+                       midpoint = 1.1) +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "floralwhite"),
+        # plot.caption = element_text(size = 16, family = "zen"),
+        panel.border = element_rect(colour = "#FF8000", fill=NA, linewidth=2)) +
+  expand_limits(y = 85) +
+  annotate(
+    "text",
+    x = 55,
+    y = 5,
+    label = 'Good | Luck | McLaren',
+    hjust = 0.5,
+    vjust = 0.5,
+    size = 12,
+    colour = 'green',
+    fontface = "bold",
+    family = "zen") +
+  annotate(
+    "text",
+    x = 42,
+    y = 70,
+    label = as.character(cmon),
+    hjust = 0.5,
+    vjust = 0.5,
+    size = 45,
+    colour = '#FF8000',
+    fontface = "bold",
+    family = "zen") +
+  annotate(
+    "text",
+    x = 85,
+    y = 70,
+    label = 'za',
+    hjust = 0.5,
+    vjust = 0.5,
+    size = 45,
+    colour = 'grey20',
+    fontface = "bold",
+    family = "zen") +
+  geom_image(data = dTP1_alt_monza, aes(x = x,
+                                  y = y, 
+                                  image = Image,
+                                  group = Image), size = case_when(dTP1_alt_monza$t <= 4 ~ 0.05,
+                                                                   dTP1_alt_monza$t >4 & dTP1_alt_monza$t <= 6 ~ 0.1,
+                                                                   dTP1_alt_monza$t >6 & dTP1_alt_monza$t <= 9 ~ 0.15,
+                                                                   dTP1_alt_monza$t >9 & dTP1_alt_monza$t <= 12 ~ 0.2,
+                                                                   dTP1_alt_monza$t >12 & dTP1_alt_monza$t <= 15 ~ 0.225,
+                                                                   dTP1_alt_monza$t >15 & dTP1_alt_monza$t <= 18 ~ 0.25,
+                                                                   dTP1_alt_monza$t >18 & dTP1_alt_monza$t <= 20 ~ 0.275,
+                                                                   TRUE ~ 0.3)) -> plot
+
 plot
 
 mosaic_bruce %>%
@@ -3824,6 +3925,7 @@ ggsave('./03_plots/bruce_car2.png', dpi = 350, height = 2.8, width = 4.2, units 
 
 # animate with the t variable
 plot_bruce <- plot + gganimate::transition_time(t) + gganimate::ease_aes('linear')
+plot_monza <- plot + gganimate::transition_time(t) + gganimate::ease_aes('linear')
 
 # animate with the color variable
 plot_bruce <- plot + gganimate::transition_states(color, transition_length = 3, state_length = 1) + shadow_wake(wake_length = 0.05) 
@@ -3850,6 +3952,9 @@ bruce_animate <- plot +
 
 animate(bruce_animate, nframes = 250, end_pause = 100, height = 600, width = 600)
 #animate(bruce_animate, fps = 30, duration = 20, end_pause = 100)
+
+animate(plot_monza, fps = 30, duration = 6.5, end_pause = 10, height = 640, width = 800)
+anim_save("./04_gifs/animation_monza1.gif")
 
 #https://stackoverflow.com/questions/64037373/gganimate-data-present-only-in-some-frames
 
